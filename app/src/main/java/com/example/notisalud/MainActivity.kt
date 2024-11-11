@@ -1,43 +1,36 @@
 package com.example.notisalud
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.notisalud.ui.theme.AppTheme
-import androidx.compose.ui.layout.ContentScale
-import com.example.notisalud.R
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        auth = FirebaseAuth.getInstance()
         setContent {
             AppTheme {
                 Scaffold(
@@ -46,38 +39,67 @@ class MainActivity : ComponentActivity() {
                     LoginScreen(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .fillMaxWidth()
+                            .fillMaxWidth(),
+                        onLogin = { email, password ->
+                            signInUser(email, password)
+                        },
+                        onRegister = {
+                            val intent = Intent(this, RegistroActivity::class.java)
+                            startActivity(intent)
+                        }
                     )
                 }
             }
         }
     }
+
+    private fun signInUser(email: String, password: String) {
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        // Iniciar PacienteActivity si el inicio de sesión es exitoso
+                        val intent = Intent(this, PacienteActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        // Mostrar mensaje de error si el userId es nulo
+                        Toast.makeText(this, "Error de autenticación: Usuario no encontrado.", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    // Mostrar mensaje de error si la autenticación falla
+                    Toast.makeText(baseContext, "Error de autenticación: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
 }
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
+fun LoginScreen(
+    modifier: Modifier = Modifier,
+    onLogin: (String, String) -> Unit,
+    onRegister: () -> Unit
+) {
     Box(modifier = modifier.fillMaxSize()) {
-        // Imagen de fondo
         val background = painterResource(id = R.drawable.fondo)
         Image(
             painter = background,
             contentDescription = null,
-            contentScale = ContentScale.Crop,  // Ajusta la imagen a la pantalla
+            contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Contenido superpuesto
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween  // Espacio entre los elementos
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Parte superior: Bienvenida y eslogan
+            // Título y eslogan
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary,
@@ -90,7 +112,6 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(16.dp)
                     )
                 }
-
                 Surface(
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(top = 16.dp)
@@ -105,17 +126,18 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // Parte media: Usuario, contraseña y botón
+            // Campos de email y contraseña con botones
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                var username by remember { mutableStateOf("") }
+                var email by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
 
                 TextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Usuario") },
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Correo") },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp)
@@ -132,21 +154,28 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                 )
 
                 Button(
-                    onClick = { /* Aquí irá la lógica para iniciar sesión */ },
+                    onClick = { onLogin(email, password) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp)
                 ) {
                     Text("Iniciar sesión")
                 }
+
+                Button(
+                    onClick = onRegister,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text("Registrarse")
+                }
             }
 
-            // Parte inferior: Logo
             LogoWrapper(modifier = Modifier.padding(bottom = 32.dp))
         }
     }
 }
-
 
 @Composable
 fun LogoWrapper(modifier: Modifier = Modifier) {
@@ -162,6 +191,9 @@ fun LogoWrapper(modifier: Modifier = Modifier) {
 @Composable
 fun LoginScreenPreview() {
     AppTheme {
-        LoginScreen()
+        LoginScreen(
+            onLogin = { _, _ -> },
+            onRegister = {}
+        )
     }
 }

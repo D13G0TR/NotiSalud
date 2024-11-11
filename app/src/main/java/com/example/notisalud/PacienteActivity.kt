@@ -1,13 +1,11 @@
 package com.example.notisalud
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
@@ -23,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
 
 class PacienteActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,16 +34,31 @@ class PacienteActivity : ComponentActivity() {
                     PacienteScreen(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .fillMaxWidth()
+                            .fillMaxWidth(),
+                        onLogout = { logoutUser() }
                     )
                 }
             }
         }
     }
+
+    private fun logoutUser() {
+        FirebaseAuth.getInstance().signOut() // Cierra la sesión del usuario
+        Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+
+        // Redirige a MainActivity
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
 }
 
 @Composable
-fun PacienteScreen(modifier: Modifier = Modifier) {
+fun PacienteScreen(
+    modifier: Modifier = Modifier,
+    onLogout: () -> Unit
+) {
     Column(
         modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -111,10 +125,20 @@ fun PacienteScreen(modifier: Modifier = Modifier) {
         }
 
         Button(
-            onClick = { /* aca se validaran los datos en la bd */ },
-            modifier = Modifier.fillMaxWidth()
+            onClick = { /* Aquí se validarán los datos en la base de datos */ },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         ) {
             Text("Enviar")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Botón de Cerrar sesión
+        Button(
+            onClick = onLogout,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Cerrar sesión")
         }
     }
 }
@@ -123,7 +147,6 @@ fun PacienteScreen(modifier: Modifier = Modifier) {
 @Composable
 fun PacienteScreenPreview() {
     AppTheme {
-        PacienteScreen()
+        PacienteScreen(onLogout = {})
     }
 }
-
