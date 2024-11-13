@@ -62,7 +62,8 @@ class RegistroActivity : ComponentActivity() {
                         "nombre" to nombre,
                         "apellido" to apellido,
                         "edad" to edad,
-                        "correo" to correo
+                        "correo" to correo,
+                        "rol" to "Paciente"
                     )
 
                     // Paso 3: Guardar datos en Firestore
