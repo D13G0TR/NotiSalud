@@ -30,7 +30,7 @@
 
 
         <activity
-            android:name=".PacienteActivity"
+            android:name=".Paciente.PacienteActivity"
             android:exported="false"
             android:label="Paciente"
             android:theme="@style/Theme.NotiSalud">
@@ -43,12 +43,47 @@
             android:theme="@style/Theme.NotiSalud">
         </activity>
 
+        <activity
+            android:name=".Paciente.PacienteVista"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".Medico.MedicoAtender"
+            android:exported="false"
+            android:label="Medico"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".Medico.MedicoVista"
+            android:exported="false"
+            android:label="Medico"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".Laboratorio.LaboratorioVista"
+            android:exported="false"
+            android:label="Laboratorio"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".Paramedico.ParamedicoVista"
+            android:exported="false"
+            android:label="Paramedico"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
-
+        <activity
+            android:name=".Paramedico.ParamedicoAccion"
+            android:exported="false"
+            android:label="Paramedico"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
     </application>
 

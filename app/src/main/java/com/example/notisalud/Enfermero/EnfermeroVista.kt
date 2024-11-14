@@ -1,4 +1,4 @@
-package com.example.notisalud
+package com.example.notisalud.Enfermero
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

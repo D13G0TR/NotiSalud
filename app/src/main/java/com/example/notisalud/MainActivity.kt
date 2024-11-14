@@ -14,13 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     val userId = auth.currentUser?.uid
                     if (userId != null) {
                         // Iniciar PacienteActivity si el inicio de sesión es exitoso
-                        val intent = Intent(this, PacienteActivity::class.java)
+                        val intent = Intent(this, PacienteVista::class.java)
                         startActivity(intent)
                         finish()
                     } else {

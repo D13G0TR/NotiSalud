@@ -1,4 +1,4 @@
-package com.example.notisalud
+package com.example.notisalud.Enfermero
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
