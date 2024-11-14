@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     val userId = auth.currentUser?.uid
                     if (userId != null) {
                         // Iniciar PacienteActivity si el inicio de sesión es exitoso
-                        val intent = Intent(this, PacienteActivity::class.java)
+                        val intent = Intent(this, PacienteVista::class.java)
                         startActivity(intent)
                         finish()
                     } else {

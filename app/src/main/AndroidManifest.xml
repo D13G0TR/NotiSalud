@@ -43,6 +43,13 @@
             android:theme="@style/Theme.NotiSalud">
         </activity>
 
+        <activity
+            android:name=".PacienteVista"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
+
 
 
 
