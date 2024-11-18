@@ -50,11 +50,33 @@
             android:theme="@style/Theme.NotiSalud">
         </activity>
 
+        <activity
+            android:name=".DoctorVista"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".DoctorActivity"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
+        <activity
+            android:name=".DoctorActivity2"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
-
-
+        <activity
+            android:name=".EnfermeroVista"
+            android:exported="false"
+            android:label="Paciente"
+            android:theme="@style/Theme.NotiSalud">
+        </activity>
 
 
     </application>
