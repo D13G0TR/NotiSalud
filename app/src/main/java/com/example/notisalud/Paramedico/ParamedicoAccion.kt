@@ -20,9 +20,9 @@ import com.example.notisalud.ui.theme.AppTheme
 // Datos del paciente con información adicional
 data class PacienteAccion(
     val nombres: String,
-    val categorization: String, // Categoría proporcionada por el enfermero
-    val atencion: String, // Atención proporcionada por el médico
-    val examenSolicitado: String, // Examen solicitado por el médico
+    val categorization: String,
+    val atencion: String,
+    val examenSolicitado: String,
 )
 
 val pacienteAccion = PacienteAccion(
@@ -109,7 +109,7 @@ fun ParamedicoAccionScreen(paciente: PacienteAccion) {
 
         // Botón para regresar a la vista de paramédico
         Button(
-            onClick = { /* Aquí puedes implementar la acción para regresar a la pantalla anterior */ },
+            onClick = { /* Aquí implementar la acción para regresar a la pantalla anterior */ },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("Regresar")

@@ -114,7 +114,7 @@ fun MedicoAtenderScreen(pacienteNombre: String) {
         Text("Datos del Paciente:", modifier = Modifier.padding(bottom = 8.dp))
         Text("Nombre: $pacienteNombre", modifier = Modifier.padding(bottom = 8.dp))
 
-        // Aquí agregar los controles adicionales, selección de exámenes, botones, etc.
+        // Aquí agrego los controles adicionales, selección de exámenes, botones, etc.
         // Ejemplo de botón de confirmar
         Button(onClick = { /* Lógica de confirmación */ }, modifier = Modifier.fillMaxWidth()) {
             Text("Confirmar Exámenes")

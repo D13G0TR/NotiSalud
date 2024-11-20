@@ -18,9 +18,9 @@ import com.example.notisalud.ui.theme.AppTheme
 data class Paciente(
     val id: Int,
     val nombres: String,
-    val categorization: String, // Categoría proporcionada por el enfermero
-    val atencion: String, // Atención proporcionada por el médico
-    val examenSolicitado: String // Examen solicitado por el médico
+    val categorization: String,
+    val atencion: String,
+    val examenSolicitado: String
 )
 
 // Lista de pacientes de ejemplo

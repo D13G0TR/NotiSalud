@@ -23,7 +23,7 @@ data class PacienteValidados(val nombres: String, val urgencias: String)
 class MedicoAtender : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val nombrePaciente = intent.getStringExtra("nombre_paciente") // Obtener el dato pasado
+        val nombrePaciente = intent.getStringExtra("nombre_paciente") // Obtiene el dato pasado
         setContent {
             AppTheme {
                 MedicoAtenderScreen(pacienteNombre = nombrePaciente, onBack = { onBack() })

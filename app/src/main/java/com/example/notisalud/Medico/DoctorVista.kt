@@ -1,4 +1,5 @@
-package com.example.notisalud
+// DoctorVista.kt
+package com.example.notisalud.Medico
 
 import android.content.Intent
 import android.os.Bundle
@@ -19,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 
-class PacienteVista : ComponentActivity() {
+class DoctorVista : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -27,12 +28,16 @@ class PacienteVista : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    PacienteVistaScreen(
+                    DoctorVistaScreen(
                         modifier = Modifier
                             .padding(innerPadding)
                             .fillMaxWidth(),
-                        onUrgenciasClick = { // Intent para redirigir a PacienteUrgencia
-                            val intent = Intent(this, PacienteActivity::class.java)
+                        onPacientesClick = {
+                            val intent = Intent(this, MedicoVista::class.java)
+                            startActivity(intent)
+                        },
+                        onExamenesClick = {
+                            val intent = Intent(this, MedicoAtender::class.java)
                             startActivity(intent)
                         }
                     )
@@ -43,55 +48,41 @@ class PacienteVista : ComponentActivity() {
 }
 
 @Composable
-fun PacienteVistaScreen(
+fun DoctorVistaScreen(
     modifier: Modifier = Modifier,
-    onUrgenciasClick: () -> Unit = {} // Valor predeterminado
+    onPacientesClick: () -> Unit,
+    onExamenesClick: () -> Unit
 ) {
     Column(
-        modifier = modifier
-            .padding(16.dp)
-            .fillMaxSize(),
+        modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Panel de Paciente",
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Text("Panel del Doctor", modifier = Modifier.padding(bottom = 16.dp))
 
         Button(
-            onClick = onUrgenciasClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
+            onClick = onPacientesClick,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         ) {
-            Text("Ingreso a Urgencias")
+            Text("Pacientes Categorizados")
         }
 
         Button(
-            onClick = { /* aqui deberia esta la Lógica para abrir la ventana de notificaciones */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
+            onClick = onExamenesClick,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Notificaciones")
-        }
-
-        Button(
-            onClick = { /* Aqui deberia estar la Lógica para abrir otras ventanas */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Text("Historial Médico")
+            Text("Exámenes de Paciente")
         }
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun PacienteVistaScreenPreview() {
+fun DoctorVistaPreview() {
     AppTheme {
-        PacienteVistaScreen()
+        DoctorVistaScreen(
+            onPacientesClick = {},
+            onExamenesClick = {}
+        )
     }
 }

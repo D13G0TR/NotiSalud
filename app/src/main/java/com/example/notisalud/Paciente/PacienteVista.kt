@@ -45,7 +45,7 @@ class PacienteVista : ComponentActivity() {
 @Composable
 fun PacienteVistaScreen(
     modifier: Modifier = Modifier,
-    onUrgenciasClick: () -> Unit = {} // Valor predeterminado
+    onUrgenciasClick: () -> Unit = {}
 ) {
     Column(
         modifier = modifier

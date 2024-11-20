@@ -77,7 +77,7 @@ fun LaboratorioVistaScreen(modifier: Modifier = Modifier) {
 
 // Función para recibir examen (simulada)
 fun onRecepcionarClick(paciente: PacienteLaboratorio) {
-    // Aquí podríamos el estado del paciente o realizar alguna acción
+    // Aquí podríam el estado del paciente o realizar alguna acción
     println("Examen de ${paciente.nombres} recepcionado.")
 }
 
