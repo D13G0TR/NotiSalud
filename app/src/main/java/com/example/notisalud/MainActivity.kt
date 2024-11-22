@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
 
@@ -41,7 +42,11 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxWidth(),
                         onLogin = { email, password ->
-                            signInUser(email, password)
+                            if (email.isNotEmpty() && password.isNotEmpty()) {
+                                signInUser(email, password)
+                            } else {
+                                Toast.makeText(baseContext, "Por favor, complete todos los campos", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         onRegister = {
                             val intent = Intent(this, RegistroActivity::class.java)
@@ -54,28 +59,43 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun signInUser(email: String, password: String) {
-        auth.signInWithEmailAndPassword(email, password)
+        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid
                     if (userId != null) {
-                        // Iniciar PacienteActivity si el inicio de sesión es exitoso
-                        val intent = Intent(this, PacienteVista::class.java)
-                        startActivity(intent)
-                        finish()
-                    } else {
-                        // Mostrar mensaje de error si el userId es nulo
-                        Toast.makeText(this, "Error de autenticación: Usuario no encontrado.", Toast.LENGTH_SHORT).show()
+                        // Recupera datos del paciente desde Firestore
+                        FirebaseFirestore.getInstance()
+                            .collection("patients")
+                            .document(userId)
+                            .get()
+                            .addOnSuccessListener { document ->
+                                val firstName = document.getString("firstName")
+                                val lastName = document.getString("lastName")
+                                if (firstName != null && lastName != null) {
+                                    // Pasa estos datos a la actividad correspondiente
+                                    val intent = Intent(this, PacienteVista::class.java)
+                                    intent.putExtra("firstName", firstName)
+                                    intent.putExtra("lastName", lastName)
+                                    startActivity(intent)
+                                    finish()
+                                } else {
+                                    Toast.makeText(baseContext, "Datos de usuario no encontrados", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(baseContext, "Error al recuperar datos", Toast.LENGTH_SHORT).show()
+                            }
                     }
                 } else {
-                    // Mostrar mensaje de error si la autenticación falla
                     Toast.makeText(baseContext, "Error de autenticación: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
     }
 }
 
-@Composable
+
+    @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
     onLogin: (String, String) -> Unit,
@@ -97,7 +117,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Título y eslogan
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -126,7 +146,7 @@ fun LoginScreen(
                 }
             }
 
-            // Campos de email y contraseña con botones
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

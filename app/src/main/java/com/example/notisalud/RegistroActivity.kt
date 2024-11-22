@@ -5,27 +5,18 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.platform.LocalContext
 
 class RegistroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,109 +39,111 @@ class RegistroActivity : ComponentActivity() {
         }
     }
 
-    private fun registrarUsuario(nombre: String, apellido: String, edad: String, correo: String, password: String) {
-        val auth = FirebaseAuth.getInstance()
-        val db = FirebaseFirestore.getInstance()
-
-        // Paso 1: Crear usuario en Firebase Authentication
-        auth.createUserWithEmailAndPassword(correo, password)
+    private fun registrarUsuario(firstName: String, lastName: String, edad: String, email: String, password: String) {
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Paso 2: Obtener el userId del usuario autenticado
-                    val userId = auth.currentUser?.uid
-                    val user = hashMapOf(
-                        "nombre" to nombre,
-                        "apellido" to apellido,
-                        "edad" to edad,
-                        "correo" to correo,
-                        "rol" to "Paciente"
+                    // Guardar el nombre, apellido, edad del paciente en Firestore
+                    val user = FirebaseAuth.getInstance().currentUser
+                    val patientData = hashMapOf(
+                        "firstName" to firstName,
+                        "lastName" to lastName,
+                        "age" to edad
                     )
 
-                    // Paso 3: Guardar datos en Firestore
-                    userId?.let {
-                        db.collection("Users").document(it).set(user)
-                            .addOnSuccessListener {
-                                Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show()
-                                // Redirigir a MainActivity
-                                val intent = Intent(this, MainActivity::class.java)
-                                startActivity(intent)
-                                finish() // Cierra RegistroActivity para que no quede en la pila
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(this, "Error al guardar datos: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                    }
+                    FirebaseFirestore.getInstance()
+                        .collection("patients")
+                        .document(user!!.uid)  // Se guarda bajo el ID del usuario
+                        .set(patientData)
+                        .addOnSuccessListener {
+                            // Mostrar un mensaje indicando que el registro fue exitoso
+                            Toast.makeText(baseContext, "Registro exitoso", Toast.LENGTH_SHORT).show()
+
+                            // Redirigir a MainActivity después del registro exitoso
+                            val intent = Intent(this, MainActivity::class.java)
+                            startActivity(intent)
+                            finish() // Finalizar RegistroActivity para evitar que el usuario regrese a ella
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(baseContext, "Error al guardar datos: ${it.message}", Toast.LENGTH_SHORT).show()
+                        }
                 } else {
-                    // Manejar errores de autenticación
-                    Toast.makeText(this, "Error en la autenticación: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(baseContext, "Error al registrarse: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
     }
 
 
     @Composable
-fun RegistroScreen(
-    modifier: Modifier = Modifier,
-    onRegister: (String, String, String, String, String) -> Unit
-) {
-    var nombre by remember { mutableStateOf("") }
-    var apellido by remember { mutableStateOf("") }
-    var edad by remember { mutableStateOf("") }
-    var correo by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier.padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    fun RegistroScreen(
+        modifier: Modifier = Modifier,
+        onRegister: (String, String, String, String, String) -> Unit
     ) {
-        TextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        TextField(
-            value = apellido,
-            onValueChange = { apellido = it },
-            label = { Text("Apellido") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-        TextField(
-            value = edad,
-            onValueChange = { edad = it },
-            label = { Text("Edad") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-        TextField(
-            value = correo,
-            onValueChange = { correo = it },
-            label = { Text("Correo") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-        TextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
+        var nombre by remember { mutableStateOf("") }
+        var apellido by remember { mutableStateOf("") }
+        var edad by remember { mutableStateOf("") }
+        var correo by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
 
-        Button(
-            onClick = {
-                onRegister(nombre, apellido, edad, correo, password)
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        val context = LocalContext.current // Obtén el contexto aquí
+
+        Column(
+            modifier = modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Registrar")
+            TextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = { Text("Nombre") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            TextField(
+                value = apellido,
+                onValueChange = { apellido = it },
+                label = { Text("Apellido") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+            TextField(
+                value = edad,
+                onValueChange = { edad = it },
+                label = { Text("Edad") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+            TextField(
+                value = correo,
+                onValueChange = { correo = it },
+                label = { Text("Correo") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+            TextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Contraseña") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+
+            Button(
+                onClick = {
+                    if (nombre.isNotEmpty() && apellido.isNotEmpty() && edad.isNotEmpty() && correo.isNotEmpty() && password.isNotEmpty()) {
+                        onRegister(nombre, apellido, edad, correo, password)
+                    } else {
+                        // Usar el contexto aquí para el Toast
+                        Toast.makeText(context, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            ) {
+                Text("Registrar")
+            }
         }
     }
-}
 
-@Preview(showSystemUi = true)
-@Composable
-fun RegistroScreenPreview() {
-    AppTheme {
-        RegistroScreen { _, _, _, _, _ -> }
+    @Preview(showSystemUi = true)
+    @Composable
+    fun RegistroScreenPreview() {
+        AppTheme {
+            RegistroScreen { _, _, _, _, _ -> }
+        }
     }
-}
 }
