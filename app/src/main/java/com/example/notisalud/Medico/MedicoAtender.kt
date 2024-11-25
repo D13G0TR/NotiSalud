@@ -1,131 +1,226 @@
 package com.example.notisalud.Medico
 
-import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
-
-// Datos del paciente
-data class PacienteValidados(val nombres: String, val urgencias: String)
+import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 
 class MedicoAtender : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val nombrePaciente = intent.getStringExtra("nombre_paciente") // Obtiene el dato pasado
+
+        // Obtener el paciente del intent
+        val paciente = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("paciente", PacienteUrgencia::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<PacienteUrgencia>("paciente")
+        }
+
         setContent {
             AppTheme {
-                MedicoAtenderScreen(pacienteNombre = nombrePaciente, onBack = { onBack() })
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // Crear un paciente vacío si no hay datos
+                    val pacienteDefault = PacienteUrgencia(
+                        id = "",
+                        nombre = "Nuevo Paciente",
+                        urgencia = "",
+                        problemaSalud = "",
+                        fiebre = "",
+                        alergia = "",
+                        validado = false
+                    )
+
+                    MedicoAtenderScreen(
+                        paciente = paciente ?: pacienteDefault,
+                        onBackPressed = { finish() }
+                    )
+                }
             }
         }
     }
+}
 
-    // Usa onBack() directamente en lugar de redefinir el método
-    private fun onBack() {
-        val intent = Intent(this, MedicoVista::class.java)
-        startActivity(intent)
-        finish() // Finaliza la actividad actual
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MedicoAtenderScreen(paciente: PacienteUrgencia, onBackPressed: () -> Unit) {
+    val context = LocalContext.current
+    val db = FirebaseFirestore.getInstance()
+    var selectedExamen by remember { mutableStateOf<String?>(null) }
+    val tiposExamen = listOf("Sangre", "Orina", "Radiografia", "Electrocardiograma")
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Atención al Paciente") },
+                navigationIcon = {
+                    IconButton(onClick = onBackPressed) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text("Nombre: ${paciente.nombre}")
+            Text("Problema: ${paciente.problemaSalud}")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExamenSelector(
+                tiposExamen = tiposExamen,
+                selectedExamen = selectedExamen,
+                onExamenSelected = { selectedExamen = it }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (selectedExamen != null) {
+                        val examenData = hashMapOf(
+                            "pacienteId" to paciente.id,
+                            "nombrePaciente" to paciente.nombre,
+                            "tipoExamen" to selectedExamen,
+                            "estado" to "Pendiente"
+                        )
+
+                        val collection = if (selectedExamen == "Sangre" || selectedExamen == "Orina") {
+                            db.collection("examenesLaboratorio")
+                        } else {
+                            db.collection("examenesRadiologia")
+                        }
+
+                        collection.add(examenData)
+                            .addOnSuccessListener {
+                                println("Datos enviados a ${collection.path}: $examenData")
+                                Toast.makeText(context, "Examen solicitado exitosamente", Toast.LENGTH_SHORT).show()
+                                onBackPressed() // Regresar
+                            }
+                            .addOnFailureListener { exception ->
+                                println("Error al enviar datos: ${exception.message}")
+                                Toast.makeText(context, "Error al solicitar examen", Toast.LENGTH_SHORT).show()
+                            }
+
+                    } else {
+                        Toast.makeText(context, "Seleccione un tipo de examen", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text("Solicitar Examen")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    isLoading = true
+                    db.collection("pacientes").document(paciente.id)
+                        .update("estado", "hospitalizado")
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Paciente hospitalizado", Toast.LENGTH_SHORT).show()
+                            onBackPressed()
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
+                            isLoading = false
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text("Hospitalizar")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    isLoading = true
+                    db.collection("pacientes").document(paciente.id)
+                        .update("estado", "alta")
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Paciente dado de alta", Toast.LENGTH_SHORT).show()
+                            onBackPressed()
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error al dar de alta", Toast.LENGTH_SHORT).show()
+                            isLoading = false
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text("Dar de Alta")
+            }
+        }
     }
 }
 
 @Composable
-fun MedicoAtenderScreen(pacienteNombre: String?, onBack: () -> Unit) {
-    // Lista de exámenes disponibles
-    val examenesDisponibles = listOf("Examen de Sangre", "Examen de Orina", "Radiografía", "Tomografía")
-    val examenesSeleccionados = remember { mutableStateListOf<String>() }
+fun ExamenSelector(
+    tiposExamen: List<String>,
+    selectedExamen: String?,
+    onExamenSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
-    ) {
-        // Botón para regresar
-        Button(onClick = onBack, modifier = Modifier.padding(bottom = 16.dp)) {
-            Text("Regresar")
-        }
+    Column {
+        OutlinedTextField(
+            value = selectedExamen ?: "Selecciona un examen",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Tipo de Examen") },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Abrir menú",
+                    modifier = Modifier.clickable { expanded = !expanded }
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        // Mostrar los datos del paciente
-        Text("Datos del Paciente:", modifier = Modifier.padding(bottom = 8.dp))
-        Text("Nombre: ${pacienteNombre}", modifier = Modifier.padding(bottom = 4.dp))
-
-        // Mostrar opciones de exámenes
-        Text("Seleccione los exámenes necesarios:", modifier = Modifier.padding(bottom = 8.dp))
-
-        examenesDisponibles.forEach { examen ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                val isChecked = examenesSeleccionados.contains(examen)
-                Checkbox(
-                    checked = isChecked,
-                    onCheckedChange = { isSelected ->
-                        if (isSelected) {
-                            examenesSeleccionados.add(examen)
-                        } else {
-                            examenesSeleccionados.remove(examen)
-                        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            tiposExamen.forEach { tipo ->
+                DropdownMenuItem(
+                    text = { Text(tipo) },
+                    onClick = {
+                        onExamenSelected(tipo)
+                        expanded = false
                     }
                 )
-                Text(text = examen, modifier = Modifier.padding(start = 8.dp))
             }
         }
-
-        // Mostrar las selecciones realizadas
-        if (examenesSeleccionados.isNotEmpty()) {
-            Text(
-                "Exámenes seleccionados:",
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-            )
-            examenesSeleccionados.forEach { examen ->
-                Text("- $examen")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Botón de confirmación
-        Button(
-            onClick = { /* Lógica para procesar los exámenes seleccionados */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Confirmar Exámenes")
-        }
-        // Botones de Alta y Hospitalización
-        Button(
-            onClick = { /* Lógica para procesar los exámenes seleccionados */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Dar Alta")
-        }
-        Button(
-            onClick = { /* Lógica para procesar los exámenes seleccionados */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Hospitalizacion")
-        }
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun MedicoAtenderPreview() {
-    AppTheme {
-        MedicoAtenderScreen(pacienteNombre = "Juan Pérez", onBack = { /* Lógica para volver atrás */ })
     }
 }
