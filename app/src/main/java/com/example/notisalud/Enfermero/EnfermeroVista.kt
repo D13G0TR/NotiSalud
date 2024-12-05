@@ -5,158 +5,149 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
-data class Paciente(
-    val id: String = "",
-    val nombre: String,
-    val problemaSalud: String,
-    val alergia: String,
-    val fiebre: String
-) : Parcelable
 
 
 class EnfermeroVista : ComponentActivity() {
-    private lateinit var listenerRegistration: ListenerRegistration
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                var pacientes by remember { mutableStateOf<List<Paciente>>(emptyList()) }
-
-                listenerRegistration = FirebaseFirestore.getInstance()
-                    .collection("pacientes")
-                    .whereEqualTo("estado", "pendiente")
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            pacientes = snapshot.documents.map { doc ->
-                                Paciente(
-                                    id = doc.id,
-                                    nombre = doc.getString("nombre") ?: "Desconocido",
-                                    problemaSalud = doc.getString("problemaSalud") ?: "",
-                                    fiebre = doc.getString("fiebre") ?: "",
-                                    alergia = doc.getString("detallesAlergia") ?: "Ninguna"
-                                )
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    EnfermeroVistaScreen(
+                        modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                        onPacienteSelected = { pacienteId ->
+                            val intent = Intent(this, EnfermeroActivity::class.java).apply {
+                                putExtra("pacienteId", pacienteId)
                             }
-                        }
-                    }
-
-                ListaPacientesScreen(pacientes = pacientes)
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        listenerRegistration.remove()
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ListaPacientesScreen(pacientes: List<Paciente>) {
-    val context = LocalContext.current
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Lista de Pacientes") }
-            )
-        }
-    ) { padding ->
-        if (pacientes.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No hay pacientes en espera")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(pacientes) { paciente ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = paciente.nombre,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        val intent = Intent(context, EnfermeroActivity::class.java).apply {
-                                            putExtra("paciente", paciente)
-                                        }
-                                        context.startActivity(intent)
-                                    }
-                                ) {
-                                    Text("Validar")
-                                }
-                                Button(
-                                    onClick = {
-                                        FirebaseFirestore.getInstance()
-                                            .collection("pacientes")
-                                            .document(paciente.id)
-                                            .delete()
-                                            .addOnSuccessListener {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Solicitud anulada",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Toast.makeText(
-                                                    context,
-                                                    "Error al anular: ${e.message}",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                    }
-                                ) {
-                                    Text("Anular")
-                                }
-                            }
-                        }
-                    }
+                            startActivity(intent)
+                        },
+                        context = this // Pasar el contexto de la actividad
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun EnfermeroVistaScreen(
+    modifier: Modifier = Modifier,
+    onPacienteSelected: (String) -> Unit,
+    context: android.content.Context // Contexto de la actividad
+) {
+    var pacientes by remember { mutableStateOf<List<PacienteEnfermero>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // Cargar pacientes desde Firestore
+    LaunchedEffect(Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("Users")
+            .whereEqualTo("rol", "Paciente")
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                val pacientesList = querySnapshot.documents.mapNotNull { document ->
+                    val nombre = document.getString("nombre")
+                    val apellido = document.getString("apellido")
+                    val userId = document.id
+                    if (nombre != null && apellido != null) {
+                        PacienteEnfermero(userId, "$nombre $apellido")
+                    } else {
+                        null
+                    }
+                }
+                pacientes = pacientesList
+                isLoading = false
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(
+                    context, // Usamos el contexto de la actividad
+                    "Error al cargar pacientes: ${exception.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                isLoading = false
+            }
+    }
+
+    // Mostrar un indicador de carga o la lista de pacientes
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        LazyColumn(modifier = modifier) {
+            items(pacientes) { paciente ->
+                PacienteItem(
+                    paciente = paciente,
+                    onClick = { onPacienteSelected(paciente.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PacienteItem(paciente: PacienteEnfermero, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = paciente.nombreCompleto,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = "Seleccionar paciente"
+                )
+            }
+        }
+    }
+}
+
+// Modelo de datos actualizado
+data class PacienteEnfermero(
+    val id: String,
+    val nombreCompleto: String
+)
+
+@Preview(showSystemUi = true)
+@Composable
+fun EnfermeroVistaPreview() {
+    AppTheme {
+        EnfermeroVistaScreen(
+            onPacienteSelected = {},
+            context = android.content.ContextWrapper(null) // Simulación de contexto para vista previa
+        )
     }
 }

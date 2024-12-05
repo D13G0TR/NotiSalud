@@ -1,242 +1,167 @@
 package com.example.notisalud.Enfermero
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.notisalud.Medico.MedicoAtender
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
-import androidx.compose.runtime.Composable
-import com.example.notisalud.Medico.PacienteUrgencia
 
 class EnfermeroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Recuperar el paciente del intent
-        val paciente = intent.getParcelableExtra<Paciente>("paciente")
-            ?: throw IllegalStateException("No se recibieron datos del paciente")
-
         setContent {
             AppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    EnfermeroScreen(
-                        paciente = paciente,
-                        onBackPressed = { finish() }
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    EnfermeroActivityScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        context = this,
+                        pacienteId = intent.getStringExtra("pacienteId") ?: "",
+                        onCategoriaSeleccionada = { categoria ->
+                            categorizarPaciente(intent.getStringExtra("pacienteId") ?: "", categoria)
+                        }
                     )
                 }
             }
         }
     }
+
+    private fun categorizarPaciente(pacienteId: String, categoria: String) {
+        // Aquí se realiza la lógica para categorizar al paciente en Firestore
+        println("Paciente con ID: $pacienteId categorizado como $categoria")
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnfermeroScreen(
-    paciente: Paciente,
-    onBackPressed: () -> Unit
+fun EnfermeroActivityScreen(
+    modifier: Modifier = Modifier,
+    context: Context?,
+    pacienteId: String,
+    onCategoriaSeleccionada: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    var selectedUrgencia by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+    val nombreCompleto = remember { mutableStateOf("Nombre no disponible") }
+    val edad = remember { mutableStateOf("Edad no disponible") }
+    val descripcion = remember { mutableStateOf("Sin descripción") }
+    val detallesFiebre = remember { mutableStateOf("No aplica") }
+    val detallesAlergias = remember { mutableStateOf("No aplica") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Categorización de Paciente") },
-                navigationIcon = {
-                    IconButton(onClick = onBackPressed) {
-                        Text("<") // Simplified back button for this example
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Información del paciente
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Información del Paciente",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("Nombre: ${paciente.nombre}")
-                    Text("Problema de salud: ${paciente.problemaSalud}")
-                    Text("Fiebre: ${paciente.fiebre}")
-                    Text("Alergias: ${paciente.alergia}")
-                }
+    LaunchedEffect(pacienteId) {
+        val firestore = FirebaseFirestore.getInstance()
+
+        // Recuperar datos del paciente desde la colección "Users"
+        firestore.collection("Users").document(pacienteId).get()
+            .addOnSuccessListener { document ->
+                val nombre = document.getString("nombre") ?: ""
+                val apellido = document.getString("apellido") ?: ""
+                val edadPaciente = document.getString("edad") ?: "Edad no disponible"
+
+                nombreCompleto.value = "$nombre $apellido"
+                edad.value = edadPaciente
             }
 
-            // Sección de categorización
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Categorizar Urgencia",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+        // Recuperar datos de la subcolección "problemasDeSalud"
+        firestore.collection("Users").document(pacienteId)
+            .collection("problemasDeSalud").get()
+            .addOnSuccessListener { querySnapshot ->
+                if (!querySnapshot.isEmpty) {
+                    val problema = querySnapshot.documents[0]
+                    descripcion.value = problema.getString("descripcion") ?: "Sin descripción"
 
-                    val opcionesUrgencia = listOf(
-                        "Atención General" to "Consultas de rutina, sin riesgo inmediato",
-                        "Leve" to "Síntomas menores, puede esperar",
-                        "Mediana gravedad" to "Requiere atención pronta pero no inmediata",
-                        "Grave" to "Requiere atención inmediata",
-                        "Riesgo vital" to "Emergencia, atención inmediata"
-                    )
+                    // Manejar detalles de fiebre
+                    val tieneFiebre = problema.getBoolean("tieneFiebre") ?: false
+                    detallesFiebre.value = if (tieneFiebre) {
+                        problema.getString("duracionFiebre") ?: "Duración no especificada"
+                    } else {
+                        "No aplica"
+                    }
 
-                    opcionesUrgencia.forEach { (opcion, descripcion) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedUrgencia == opcion,
-                                onClick = { selectedUrgencia = opcion }
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .weight(1f)
-                            ) {
-                                Text(
-                                    text = opcion,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = descripcion,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
+                    // Manejar detalles de alergias
+                    val tieneAlergia = problema.getBoolean("tieneAlergia") ?: false
+                    detallesAlergias.value = if (tieneAlergia) {
+                        problema.getString("detallesAlergia") ?: "Detalles no especificados"
+                    } else {
+                        "No aplica"
                     }
                 }
             }
+    }
 
-            // Botón de validación
-            Button(
-                onClick = {
-                    if (selectedUrgencia == null) {
-                        Toast.makeText(
-                            context,
-                            "Por favor seleccione un nivel de urgencia",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@Button
-                    }
 
-                    isLoading = true
-                    // EnfermeroActivity
-                    FirebaseFirestore.getInstance()
-                        .collection("pacientes")
-                        .document(paciente.id)
-                        .update(
-                            mapOf(
-                                "estado" to "validado",
-                                "urgencia" to selectedUrgencia
-                            )
-                        )
-                        .addOnSuccessListener {
-                            // Crear un objeto PacienteUrgencias a partir de Paciente
-                            val pacienteUrgencias = PacienteUrgencia(
-                                id = paciente.id,
-                                nombre = paciente.nombre,
-                                problemaSalud = paciente.problemaSalud,
-                                urgencia = selectedUrgencia ?: "No especificada",
-                                fiebre = paciente.fiebre,
-                                alergia = paciente.alergia,
-                                validado = true
-                            )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        // Título
+        Text(
+            text = "Categorización del Paciente",
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
-                            // Enviar al médico
-                            val intent = Intent(context, MedicoAtender::class.java)
-                            intent.putExtra("paciente", pacienteUrgencias)
-                            context.startActivity(intent)
+        // Información del paciente
+        Text(text = "Nombre Completo: ${nombreCompleto.value}", modifier = Modifier.padding(bottom = 8.dp))
+        Text(text = "Edad: ${edad.value}", modifier = Modifier.padding(bottom = 8.dp))
+        Text(text = "Descripción: ${descripcion.value}", modifier = Modifier.padding(bottom = 8.dp))
+        Text(text = "Duración de fiebre (días): ${detallesFiebre.value}", modifier = Modifier.padding(bottom = 8.dp))
+        Text(text = "Alergias: ${detallesAlergias.value}", modifier = Modifier.padding(bottom = 8.dp))
 
-                            onBackPressed()
-                        }
+        // Botones de categorización
+        CategorizationButton("Atención General", "Condición estable") { onCategoriaSeleccionada("Atención General") }
+        CategorizationButton("Leve", "Atención no urgente") { onCategoriaSeleccionada("Leve") }
+        CategorizationButton("Mediana Gravedad", "Requiere atención pronta") { onCategoriaSeleccionada("Mediana Gravedad") }
+        CategorizationButton("Grave", "Atención inmediata") { onCategoriaSeleccionada("Grave") }
+        CategorizationButton("Riesgo Vital", "Urgencia extrema") { onCategoriaSeleccionada("Riesgo Vital") }
+    }
+}
 
-                        .addOnFailureListener { e ->
-                            Toast.makeText(
-                                context,
-                                "Error al categorizar: ${e.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            isLoading = false
-                        }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Validar y Categorizar Paciente")
-                }
-            }
+@Composable
+fun CategorizationButton(
+    titulo: String,
+    subtitulo: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = titulo)
+            Text(text = subtitulo)
         }
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun EnfermeroScreenPreview() {
+fun EnfermeroActivityPreview() {
     AppTheme {
-        EnfermeroScreen(
-            paciente = Paciente(
-                id = "1",
-                nombre = "Juan Pérez",
-                problemaSalud = "Dolor de cabeza intenso",
-                fiebre = "1 Dia",
-                alergia = "Ninguna"
-            ),
-            onBackPressed = {}
+        EnfermeroActivityScreen(
+            modifier = Modifier.padding(0.dp),
+            context = null, // Contexto nulo para vista previa
+            pacienteId = "mockId", // Mock ID
+            onCategoriaSeleccionada = {}
         )
     }
 }

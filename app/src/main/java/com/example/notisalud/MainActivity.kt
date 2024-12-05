@@ -3,23 +3,31 @@ package com.example.notisalud
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.notisalud.Enfermero.EnfermeroVista
 import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -28,10 +36,14 @@ import com.google.firebase.firestore.FirebaseFirestore
 class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
+
         setContent {
             AppTheme {
                 Scaffold(
@@ -42,11 +54,7 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxWidth(),
                         onLogin = { email, password ->
-                            if (email.isNotEmpty() && password.isNotEmpty()) {
-                                signInUser(email, password)
-                            } else {
-                                Toast.makeText(baseContext, "Por favor, complete todos los campos", Toast.LENGTH_SHORT).show()
-                            }
+                            signInUser(email, password)
                         },
                         onRegister = {
                             val intent = Intent(this, RegistroActivity::class.java)
@@ -59,50 +67,65 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun signInUser(email: String, password: String) {
-        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+        auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid
+                    val userId = auth.currentUser?.uid
                     if (userId != null) {
-                        // Recupera datos del paciente desde Firestore
-                        FirebaseFirestore.getInstance()
-                            .collection("patients")
-                            .document(userId)
-                            .get()
+                        // Verificar el rol del usuario en Firestore
+                        firestore.collection("Users").document(userId).get()
                             .addOnSuccessListener { document ->
-                                val firstName = document.getString("firstName")
-                                val lastName = document.getString("lastName")
-                                if (firstName != null && lastName != null) {
-                                    // Pasa estos datos a la actividad correspondiente
-                                    val intent = Intent(this, PacienteVista::class.java)
-                                    intent.putExtra("firstName", firstName)
-                                    intent.putExtra("lastName", lastName)
-                                    startActivity(intent)
-                                    finish()
+                                if (document.exists()) {
+                                    val rol = document.getString("rol")
+                                    val firstName = document.getString("nombre") ?: "Usuario"
+                                    val lastName = document.getString("apellido") ?: "Desconocido"
+
+                                    when (rol) {
+                                        "Paciente" -> {
+                                            val intent = Intent(this, PacienteVista::class.java).apply {
+                                                putExtra("firstName", firstName)
+                                                putExtra("lastName", lastName)
+                                            }
+                                            startActivity(intent)
+                                            finish()
+                                        }
+                                        "Enfermero" -> {
+                                            val intent = Intent(this, EnfermeroVista::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
+                                        else -> {
+                                            Toast.makeText(this, "Rol no reconocido.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                 } else {
-                                    Toast.makeText(baseContext, "Datos de usuario no encontrados", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, "Datos de usuario no encontrados.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                             .addOnFailureListener {
-                                Toast.makeText(baseContext, "Error al recuperar datos", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Error al obtener datos del usuario.", Toast.LENGTH_SHORT).show()
                             }
                     }
                 } else {
-                    Toast.makeText(baseContext, "Error de autenticación: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        baseContext,
+                        "Error de autenticación: ${task.exception?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
     }
 }
 
-
-    @Composable
+@Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
     onLogin: (String, String) -> Unit,
     onRegister: () -> Unit
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        val background = painterResource(id = R.drawable.fondo)
+        // Fondo de la pantalla
+        val background = painterResource(id = R.drawable.fondo) // Asegúrate de tener este recurso en `res/drawable`
         Image(
             painter = background,
             contentDescription = null,
@@ -110,6 +133,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        // Contenido
         Column(
             modifier = Modifier
                 .padding(16.dp)
@@ -117,37 +141,26 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-
+            // Slogan en la parte superior
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                ) {
-                    Text(
-                        text = "Bienvenido a NotiSalud",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-                Surface(
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(top = 16.dp)
-                ) {
-                    Text(
-                        text = "Tu salud nos importa",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondary,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+                Text(
+                    text = "Bienvenido a NotiSalud",
+                    fontSize = 24.sp,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Tu salud nos importa",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
             }
 
-
+            // Campos y botones
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 var email by remember { mutableStateOf("") }
@@ -160,7 +173,7 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Email),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp)
+                        .padding(bottom = 16.dp)
                 )
 
                 TextField(
@@ -170,41 +183,37 @@ fun LoginScreen(
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(bottom = 16.dp)
                 )
 
                 Button(
                     onClick = { onLogin(email, password) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp)
+                        .padding(bottom = 8.dp)
                 ) {
                     Text("Iniciar sesión")
                 }
 
                 Button(
                     onClick = onRegister,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Registrarse")
                 }
             }
 
-            LogoWrapper(modifier = Modifier.padding(bottom = 32.dp))
+            // Logo en la parte inferior
+            val logo = painterResource(id = R.drawable.logo) // Asegúrate de tener este recurso en `res/drawable`
+            Image(
+                painter = logo,
+                contentDescription = "Logo NotiSalud",
+                modifier = Modifier
+                    .size(120.dp)
+                    .padding(bottom = 16.dp)
+            )
         }
     }
-}
-
-@Composable
-fun LogoWrapper(modifier: Modifier = Modifier) {
-    val image = painterResource(id = R.drawable.logo)
-    Image(
-        painter = image,
-        contentDescription = "Logo NotiSalud",
-        modifier = modifier
-    )
 }
 
 @Preview(showSystemUi = true)

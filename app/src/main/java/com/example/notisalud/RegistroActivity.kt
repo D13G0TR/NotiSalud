@@ -43,26 +43,24 @@ class RegistroActivity : ComponentActivity() {
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Guardar el nombre, apellido, edad del paciente en Firestore
                     val user = FirebaseAuth.getInstance().currentUser
-                    val patientData = hashMapOf(
-                        "firstName" to firstName,
-                        "lastName" to lastName,
-                        "age" to edad
+                    val userData = hashMapOf(
+                        "nombre" to firstName,
+                        "apellido" to lastName,
+                        "edad" to edad,
+                        "correo" to email,
+                        "rol" to "Paciente"
                     )
 
                     FirebaseFirestore.getInstance()
-                        .collection("patients")
-                        .document(user!!.uid)  // Se guarda bajo el ID del usuario
-                        .set(patientData)
+                        .collection("Users")
+                        .document(user!!.uid)
+                        .set(userData)
                         .addOnSuccessListener {
-                            // Mostrar un mensaje indicando que el registro fue exitoso
                             Toast.makeText(baseContext, "Registro exitoso", Toast.LENGTH_SHORT).show()
-
-                            // Redirigir a MainActivity después del registro exitoso
                             val intent = Intent(this, MainActivity::class.java)
                             startActivity(intent)
-                            finish() // Finalizar RegistroActivity para evitar que el usuario regrese a ella
+                            finish()
                         }
                         .addOnFailureListener {
                             Toast.makeText(baseContext, "Error al guardar datos: ${it.message}", Toast.LENGTH_SHORT).show()
@@ -72,6 +70,8 @@ class RegistroActivity : ComponentActivity() {
                 }
             }
     }
+
+
 
 
     @Composable
