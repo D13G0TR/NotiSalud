@@ -7,50 +7,63 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.example.notisalud.Enfermero.EnfermeroVista
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import android.util.Log
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // Maneja las notificaciones aquí
-        remoteMessage.notification?.let {
-            sendNotification(it.title, it.body)
-        }
+        super.onMessageReceived(remoteMessage)
+
+        val title = remoteMessage.notification?.title ?: "Nuevo mensaje"
+        val body = remoteMessage.notification?.body ?: "Tienes una nueva notificación"
+
+        showNotification(title, body)
     }
 
-    private fun sendNotification(title: String?, body: String?) {
-        val channelId = "notisalud_channel"
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showNotification(title: String, body: String) {
+        val channelId = "default_channel"
+        val notificationId = System.currentTimeMillis().toInt()
 
-        // Crea el canal de notificaciones
+        // Configurar la acción de la notificación
+        val intent = Intent(this, EnfermeroVista::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Crear la notificación
+        val builder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // Reemplázalo con tu ícono de notificación
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Crear el canal de notificaciones (para Android 8 o superior)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "NotiSalud Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
+                "General Notifications",
+                NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Configura la intención al abrir la notificación
-        val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        notificationManager.notify(notificationId, builder.build())
+    }
 
-        // Crea la notificación
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title ?: "Nueva notificación")
-            .setContentText(body ?: "Tienes una nueva alerta")
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        // Muestra la notificación
-        notificationManager.notify(0, notification)
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        // Guardar Token en FireBase
+        println("Nuevo token: $token")
     }
 }

@@ -15,13 +15,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
-
-
 
 class EnfermeroVista : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,12 +31,23 @@ class EnfermeroVista : ComponentActivity() {
                     EnfermeroVistaScreen(
                         modifier = Modifier.padding(innerPadding).fillMaxSize(),
                         onPacienteSelected = { pacienteId ->
-                            val intent = Intent(this, EnfermeroActivity::class.java).apply {
-                                putExtra("pacienteId", pacienteId)
-                            }
-                            startActivity(intent)
+                            FirebaseFirestore.getInstance()
+                                .collection("Users")
+                                .document(pacienteId)
+                                .collection("problemasDeSalud")
+                                .get()
+                                .addOnSuccessListener { problemasSnapshot ->
+                                    val problema = problemasSnapshot.documents.firstOrNull()
+                                    val intent = Intent(this, EnfermeroActivity::class.java).apply {
+                                        putExtra("pacienteId", pacienteId)
+                                        putExtra("descripcion", problema?.getString("descripcion") ?: "No disponible")
+                                        putExtra("detallesFiebre", problema?.getString("detallesFiebre") ?: "No aplica")
+                                        putExtra("detallesAlergia", problema?.getString("detallesAlergia") ?: "No aplica")
+                                    }
+                                    startActivity(intent)
+                                }
                         },
-                        context = this // Pasar el contexto de la actividad
+                        context = this
                     )
                 }
             }
@@ -51,34 +59,42 @@ class EnfermeroVista : ComponentActivity() {
 fun EnfermeroVistaScreen(
     modifier: Modifier = Modifier,
     onPacienteSelected: (String) -> Unit,
-    context: android.content.Context // Contexto de la actividad
+    context: android.content.Context
 ) {
     var pacientes by remember { mutableStateOf<List<PacienteEnfermero>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Cargar pacientes desde Firestore
     LaunchedEffect(Unit) {
         FirebaseFirestore.getInstance()
             .collection("Users")
             .whereEqualTo("rol", "Paciente")
             .get()
             .addOnSuccessListener { querySnapshot ->
-                val pacientesList = querySnapshot.documents.mapNotNull { document ->
+                val pacientesList = mutableListOf<PacienteEnfermero>()
+                querySnapshot.documents.forEach { document ->
                     val nombre = document.getString("nombre")
                     val apellido = document.getString("apellido")
                     val userId = document.id
-                    if (nombre != null && apellido != null) {
-                        PacienteEnfermero(userId, "$nombre $apellido")
-                    } else {
-                        null
-                    }
+
+                    FirebaseFirestore.getInstance()
+                        .collection("Users")
+                        .document(userId)
+                        .collection("problemasDeSalud")
+                        .get()
+                        .addOnSuccessListener { problemasSnapshot ->
+                            if (!problemasSnapshot.isEmpty) {
+                                if (nombre != null && apellido != null) {
+                                    pacientesList.add(PacienteEnfermero(userId, "$nombre $apellido"))
+                                }
+                                pacientes = pacientesList
+                            }
+                            isLoading = false
+                        }
                 }
-                pacientes = pacientesList
-                isLoading = false
             }
             .addOnFailureListener { exception ->
                 Toast.makeText(
-                    context, // Usamos el contexto de la actividad
+                    context,
                     "Error al cargar pacientes: ${exception.message}",
                     Toast.LENGTH_SHORT
                 ).show()
@@ -86,21 +102,14 @@ fun EnfermeroVistaScreen(
             }
     }
 
-    // Mostrar un indicador de carga o la lista de pacientes
     if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else {
         LazyColumn(modifier = modifier) {
             items(pacientes) { paciente ->
-                PacienteItem(
-                    paciente = paciente,
-                    onClick = { onPacienteSelected(paciente.id) }
-                )
+                PacienteItem(paciente = paciente, onClick = { onPacienteSelected(paciente.id) })
             }
         }
     }
@@ -126,20 +135,13 @@ fun PacienteItem(paciente: PacienteEnfermero, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onClick) {
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "Seleccionar paciente"
-                )
+                Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Seleccionar paciente")
             }
         }
     }
 }
 
-// Modelo de datos actualizado
-data class PacienteEnfermero(
-    val id: String,
-    val nombreCompleto: String
-)
+data class PacienteEnfermero(val id: String, val nombreCompleto: String)
 
 @Preview(showSystemUi = true)
 @Composable
@@ -147,7 +149,7 @@ fun EnfermeroVistaPreview() {
     AppTheme {
         EnfermeroVistaScreen(
             onPacienteSelected = {},
-            context = android.content.ContextWrapper(null) // Simulación de contexto para vista previa
+            context = android.content.ContextWrapper(null)
         )
     }
 }

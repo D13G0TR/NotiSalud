@@ -54,9 +54,9 @@ class PacienteActivity : ComponentActivity() {
             val problemaSalud = hashMapOf(
                 "descripcion" to descripcion,
                 "tieneFiebre" to tieneFiebre,
-                "duracionFiebre" to (duracionFiebre ?: ""),
+                "duracionFiebre" to (duracionFiebre ?: "No aplica"),
                 "tieneAlergia" to tieneAlergia,
-                "detallesAlergia" to (detallesAlergia ?: "")
+                "detallesAlergia" to (detallesAlergia ?: "No aplica")
             )
 
             FirebaseFirestore.getInstance()
@@ -66,6 +66,7 @@ class PacienteActivity : ComponentActivity() {
                 .add(problemaSalud)
                 .addOnSuccessListener {
                     Toast.makeText(this, "Problema de salud enviado exitosamente", Toast.LENGTH_SHORT).show()
+                    enviarNotificacionParaEnfermeros()
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Error al enviar: ${exception.message}", Toast.LENGTH_SHORT).show()
@@ -73,6 +74,25 @@ class PacienteActivity : ComponentActivity() {
         } else {
             Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun enviarNotificacionParaEnfermeros() {
+        FirebaseFirestore.getInstance().collection("notifications")
+            .add(
+                mapOf(
+                    "to" to "/topics/enfermeros",
+                    "notification" to mapOf(
+                        "title" to "Nuevo paciente",
+                        "body" to "Un nuevo paciente necesita categorización."
+                    )
+                )
+            )
+            .addOnSuccessListener {
+                println("Notificación enviada correctamente a los enfermeros")
+            }
+            .addOnFailureListener { e ->
+                println("Error al enviar la notificación: ${e.message}")
+            }
     }
 }
 
