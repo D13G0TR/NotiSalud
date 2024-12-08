@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 class MedicoPacienteActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,9 +42,13 @@ class MedicoPacienteActivity : ComponentActivity() {
                 ) { innerPadding ->
                     PacienteListScreen(
                         modifier = Modifier.padding(innerPadding),
-                        onPacienteSelected = { pacienteId ->
+                        onPacienteSelected = { paciente ->
                             val intent = Intent(this, MedicoPacienteCheck::class.java).apply {
-                                putExtra("pacienteId", pacienteId)
+                                putExtra("nombre", paciente.nombreCompleto)
+                                putExtra("problemaSalud", paciente.problemaSalud)
+                                putExtra("fiebre", paciente.fiebre)
+                                putExtra("alergia", paciente.alergia)
+                                putExtra("categorizacion", paciente.categorizacion)
                             }
                             startActivity(intent)
                         }
@@ -59,7 +62,7 @@ class MedicoPacienteActivity : ComponentActivity() {
 @Composable
 fun PacienteListScreen(
     modifier: Modifier = Modifier,
-    onPacienteSelected: (String) -> Unit
+    onPacienteSelected: (PacienteCategorizado) -> Unit
 ) {
     val context = LocalContext.current
     val firestore = FirebaseFirestore.getInstance()
@@ -71,6 +74,7 @@ fun PacienteListScreen(
             .get()
             .addOnSuccessListener { querySnapshot ->
                 val listaPacientes = mutableListOf<PacienteCategorizado>()
+
                 querySnapshot.documents.forEach { userDocument ->
                     val userId = userDocument.id
                     val nombre = userDocument.getString("nombre") ?: "Desconocido"
@@ -85,7 +89,10 @@ fun PacienteListScreen(
                                     PacienteCategorizado(
                                         id = userId,
                                         nombreCompleto = "$nombre $apellido",
-                                        categorizacion = problemaDoc.getString("Categorizacion") ?: "No especificada"
+                                        problemaSalud = problemaDoc.getString("descripcion") ?: "Sin descripción",
+                                        fiebre = problemaDoc.getString("duracionFiebre") ?: "No aplica",
+                                        alergia = problemaDoc.getString("detallesAlergia") ?: "No aplica",
+                                        categorizacion = problemaDoc.getString("Categorizacion") ?: "No categorizado"
                                     )
                                 )
                             }
@@ -94,9 +101,9 @@ fun PacienteListScreen(
                         }
                         .addOnFailureListener {
                             Toast.makeText(context, "Error al cargar problemas de salud", Toast.LENGTH_SHORT).show()
-                            isLoading = false
                         }
                 }
+                isLoading = false
             }
             .addOnFailureListener {
                 Toast.makeText(context, "Error al cargar usuarios", Toast.LENGTH_SHORT).show()
@@ -111,7 +118,7 @@ fun PacienteListScreen(
     } else {
         LazyColumn(modifier = modifier.fillMaxSize()) {
             items(pacientes) { paciente ->
-                PacienteItem(paciente = paciente, onClick = { onPacienteSelected(paciente.id) })
+                PacienteItem(paciente = paciente, onClick = { onPacienteSelected(paciente) })
             }
         }
     }
@@ -143,6 +150,9 @@ fun PacienteItem(paciente: PacienteCategorizado, onClick: () -> Unit) {
 data class PacienteCategorizado(
     val id: String,
     val nombreCompleto: String,
+    val problemaSalud: String,
+    val fiebre: String,
+    val alergia: String,
     val categorizacion: String
 )
 
