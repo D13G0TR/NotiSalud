@@ -39,7 +39,6 @@
         <activity android:name=".Medico.MedicoVista" android:exported="false" />
         <activity android:name=".Medico.MedicoPacienteActivity" android:exported="false" />
         <activity android:name=".Medico.MedicoPacienteCheck" android:exported="false" />
-        <activity android:name=".Medico.MedicoLaboratorioActivity" android:exported="false" />
 
         <!-- Paramedico Activities -->
         <activity android:name=".Paramedico.ParamedicoVista" android:exported="false" />

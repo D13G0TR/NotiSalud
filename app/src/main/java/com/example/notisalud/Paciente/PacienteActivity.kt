@@ -67,6 +67,7 @@ class PacienteActivity : ComponentActivity() {
                 .addOnSuccessListener {
                     Toast.makeText(this, "Problema de salud enviado exitosamente", Toast.LENGTH_SHORT).show()
                     enviarNotificacionParaEnfermeros()
+                    finish()
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Error al enviar: ${exception.message}", Toast.LENGTH_SHORT).show()
