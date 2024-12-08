@@ -136,11 +136,11 @@ fun MedicoPacienteCheckScreen(
 fun PreviewMedicoPacienteCheckScreen() {
     AppTheme {
         MedicoPacienteCheckScreen(
-            nombre = "Fernando Varas",
-            problemaSalud = "Fractura de Rodilla",
+            nombre = "ejemplo ejemplo",
+            problemaSalud = "ejemplo salud",
             fiebre = "No aplica",
-            alergia = "Paracetamol",
-            categorizacion = "Atención General"
+            alergia = "ejemploalergia",
+            categorizacion = "ejemplocat"
         )
     }
 }
