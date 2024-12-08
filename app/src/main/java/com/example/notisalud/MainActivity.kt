@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.notisalud.Enfermero.EnfermeroVista
+import com.example.notisalud.Medico.MedicoVista
 import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -115,19 +116,15 @@ class MainActivity : ComponentActivity() {
                                             finish()
                                         }
                                         "Enfermero" -> {
-                                            FirebaseMessaging.getInstance().subscribeToTopic("enfermeros")
-                                                .addOnCompleteListener { task ->
-                                                    if (task.isSuccessful) {
-                                                        println("Suscripción al tema 'enfermeros' exitosa")
-                                                    } else {
-                                                        println("Error al suscribirse al tema 'enfermeros'")
-                                                    }
-                                                }
                                             val intent = Intent(this, EnfermeroVista::class.java)
                                             startActivity(intent)
                                             finish()
                                         }
-
+                                        "Doctor" -> {
+                                            val intent = Intent(this, MedicoVista::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
                                         else -> {
                                             Toast.makeText(this, "Rol no reconocido.", Toast.LENGTH_SHORT).show()
                                         }
@@ -149,9 +146,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
-}
 
-@Composable
+
+    @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
     onLogin: (String, String) -> Unit,
@@ -258,5 +255,6 @@ fun LoginScreenPreview() {
             onLogin = { _, _ -> },
             onRegister = {}
         )
+    }
     }
 }
