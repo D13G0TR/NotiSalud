@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.notisalud.MainActivity
 import com.example.notisalud.ui.theme.AppTheme
 
 class PacienteVista : ComponentActivity() {
@@ -44,6 +45,12 @@ class PacienteVista : ComponentActivity() {
                                 putExtra("lastName", lastName)
                             }
                             startActivity(intent)
+                        },
+                        onCloseSessionClick = {
+                            // Redirige a MainActivity
+                            val intent = Intent(this, MainActivity::class.java)
+                            startActivity(intent)
+                            finish() // Finaliza la actividad actual para evitar volver con el botón "Atrás"
                         }
                     )
                 }
@@ -57,7 +64,8 @@ fun PacienteVistaScreen(
     firstName: String,
     lastName: String,
     modifier: Modifier = Modifier,
-    onUrgenciasClick: () -> Unit
+    onUrgenciasClick: () -> Unit,
+    onCloseSessionClick: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -91,6 +99,16 @@ fun PacienteVistaScreen(
         ) {
             Text("Otras Funcionalidades")
         }
+
+        // Botón de cerrar sesión
+        Button(
+            onClick = onCloseSessionClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Cerrar sesión")
+        }
     }
 }
 
@@ -100,7 +118,8 @@ fun PacienteVistaPreview() {
         PacienteVistaScreen(
             firstName = "Juan",
             lastName = "Pérez",
-            onUrgenciasClick = {}
+            onUrgenciasClick = {},
+            onCloseSessionClick = {}
         )
     }
 }

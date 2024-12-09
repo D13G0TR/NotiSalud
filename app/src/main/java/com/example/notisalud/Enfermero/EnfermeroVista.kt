@@ -52,7 +52,7 @@ class EnfermeroVista : ComponentActivity() {
                                         val tieneAlergia = problema?.getBoolean("tieneAlergia") ?: false
                                         val tieneFiebre = problema?.getBoolean("tieneFiebre") ?: false
                                         val duracionFiebre = problema?.getString("duracionFiebre") ?: "0"
-                                        val categorizacion = problema?.getString("categorizacion") ?: "No especificado"
+                                        val Categorizacion = problema?.getString("Categorizacion") ?: "No especificado"
 
                                         // Definir el texto de fiebre dependiendo de la duración y el estado
                                         val fiebreTexto = if (tieneFiebre) {
@@ -74,7 +74,7 @@ class EnfermeroVista : ComponentActivity() {
                                             putExtra("descripcion", descripcion)
                                             putExtra("detallesFiebre", fiebreTexto)
                                             putExtra("detallesAlergia", alergiaTexto)
-                                            putExtra("categorizacion", categorizacion)
+                                            putExtra("Categorizacion", Categorizacion)
                                             putExtra("nombreCompleto", "$nombre $apellido")
                                         }
                                         startActivity(intent) // Mueve esta línea aquí, dentro de la lambda
@@ -129,7 +129,7 @@ fun EnfermeroVistaScreen(
                         firestore.collection("Users")
                             .document(userId)
                             .collection("problemasDeSalud")
-                            .whereEqualTo("categorizacion", "pendiente") // Añadir este filtro
+                            .whereEqualTo("Categorizacion", "pendiente")
                             .addSnapshotListener { problemasSnapshot, problemasError ->
                                 if (problemasError != null) {
                                     Toast.makeText(

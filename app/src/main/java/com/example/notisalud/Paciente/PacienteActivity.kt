@@ -57,8 +57,8 @@ class PacienteActivity : ComponentActivity() {
                 "duracionFiebre" to (duracionFiebre ?: "No aplica"),
                 "tieneAlergia" to tieneAlergia,
                 "detallesAlergia" to (detallesAlergia ?: "No aplica"),
-                "categorizacion" to "pendiente", // Añade este campo
-                "timestamp" to com.google.firebase.Timestamp.now() // Opcional: para ordenar
+                "Categorizacion" to "pendiente",
+                "timestamp" to com.google.firebase.Timestamp.now()
             )
 
             FirebaseFirestore.getInstance()

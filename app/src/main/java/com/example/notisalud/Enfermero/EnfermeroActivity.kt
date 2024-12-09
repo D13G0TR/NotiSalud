@@ -67,7 +67,7 @@ class EnfermeroActivity : ComponentActivity() {
                                 "Categorización '$categoria' actualizada correctamente.",
                                 Toast.LENGTH_SHORT
                             ).show()
-                            finish() // Opcional: cerrar la actividad tras la acción
+                            finish()
                         }
                         .addOnFailureListener { exception ->
                             Toast.makeText(
@@ -79,13 +79,6 @@ class EnfermeroActivity : ComponentActivity() {
                 } else {
                     Toast.makeText(this, "No se encontró el problema de salud.", Toast.LENGTH_SHORT).show()
                 }
-            }
-            .addOnFailureListener { exception ->
-                Toast.makeText(
-                    this,
-                    "Error al obtener problemas de salud: ${exception.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
     }
 }
