@@ -44,6 +44,7 @@ class MedicoPacienteActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         onPacienteSelected = { paciente ->
                             val intent = Intent(this, MedicoPacienteCheck::class.java).apply {
+                                putExtra("userId", paciente.id)
                                 putExtra("nombre", paciente.nombreCompleto)
                                 putExtra("problemaSalud", paciente.problemaSalud)
                                 putExtra("fiebre", paciente.fiebre)

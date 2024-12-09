@@ -14,12 +14,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
-
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MedicoPacienteCheck : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val userId = intent.getStringExtra("userId") ?: ""
         val nombre = intent.getStringExtra("nombre") ?: "Paciente Desconocido"
         val problemaSalud = intent.getStringExtra("problemaSalud") ?: "Sin descripción"
         val fiebre = intent.getStringExtra("fiebre") ?: "No aplica"
@@ -29,6 +32,7 @@ class MedicoPacienteCheck : ComponentActivity() {
         setContent {
             AppTheme {
                 MedicoPacienteCheckScreen(
+                    userId = userId,
                     nombre = nombre,
                     problemaSalud = problemaSalud,
                     fiebre = fiebre,
@@ -40,16 +44,19 @@ class MedicoPacienteCheck : ComponentActivity() {
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
-
 @Composable
 fun MedicoPacienteCheckScreen(
+    userId: String,
     nombre: String,
     problemaSalud: String,
     fiebre: String,
     alergia: String,
     categorizacion: String
 ) {
-    val context = LocalContext.current // Contexto obtenido correctamente dentro de @Composable
+    val context = LocalContext.current
+    val db = FirebaseFirestore.getInstance()
+
+    var examenTexto by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -81,13 +88,37 @@ fun MedicoPacienteCheckScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            OutlinedTextField(
+                value = examenTexto,
+                onValueChange = { examenTexto = it },
+                label = { Text("Tipo de Examen") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
                 onClick = {
-                    Toast.makeText(
-                        context,
-                        "Petición de Examen enviada.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    val examen = examenTexto.trim()
+                    if (examen.isNotEmpty()) {
+                        val examenData = hashMapOf(
+                            "Examen" to examen,
+                            "Fecha" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                        )
+
+                        db.collection("Users")
+                            .document(userId)
+                            .collection("Examenes")
+                            .add(examenData)
+                            .addOnSuccessListener {
+                                Toast.makeText(context, "Examen registrado exitosamente.", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(context, "Error al registrar el examen.", Toast.LENGTH_SHORT).show()
+                            }
+                    } else {
+                        Toast.makeText(context, "Por favor, ingrese un tipo de examen.", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -96,10 +127,9 @@ fun MedicoPacienteCheckScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            var motivoAlta by remember { mutableStateOf("") }
             OutlinedTextField(
-                value = motivoAlta,
-                onValueChange = { motivoAlta = it },
+                value = "",
+                onValueChange = {},
                 label = { Text("Motivo de Alta") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -108,19 +138,7 @@ fun MedicoPacienteCheckScreen(
 
             Button(
                 onClick = {
-                    if (motivoAlta.isNotBlank()) {
-                        Toast.makeText(
-                            context,
-                            "Paciente dado de alta con motivo: $motivoAlta",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Por favor, proporcione un motivo de alta.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    Toast.makeText(context, "Paciente dado de alta.", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -130,17 +148,17 @@ fun MedicoPacienteCheckScreen(
     }
 }
 
-
 @Preview(showSystemUi = true)
 @Composable
 fun PreviewMedicoPacienteCheckScreen() {
     AppTheme {
         MedicoPacienteCheckScreen(
-            nombre = "ejemplo ejemplo",
-            problemaSalud = "ejemplo salud",
+            userId = "",
+            nombre = "Fernando Varas",
+            problemaSalud = "Fractura de Rodilla",
             fiebre = "No aplica",
-            alergia = "ejemploalergia",
-            categorizacion = "ejemplocat"
+            alergia = "Paracetamol",
+            categorizacion = "Atención General"
         )
     }
 }
