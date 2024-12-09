@@ -56,7 +56,9 @@ class PacienteActivity : ComponentActivity() {
                 "tieneFiebre" to tieneFiebre,
                 "duracionFiebre" to (duracionFiebre ?: "No aplica"),
                 "tieneAlergia" to tieneAlergia,
-                "detallesAlergia" to (detallesAlergia ?: "No aplica")
+                "detallesAlergia" to (detallesAlergia ?: "No aplica"),
+                "categorizacion" to "pendiente", // Añade este campo
+                "timestamp" to com.google.firebase.Timestamp.now() // Opcional: para ordenar
             )
 
             FirebaseFirestore.getInstance()
@@ -67,6 +69,7 @@ class PacienteActivity : ComponentActivity() {
                 .addOnSuccessListener {
                     Toast.makeText(this, "Problema de salud enviado exitosamente", Toast.LENGTH_SHORT).show()
                     enviarNotificacionParaEnfermeros()
+                    finish()
                 }
                 .addOnFailureListener { exception ->
                     Toast.makeText(this, "Error al enviar: ${exception.message}", Toast.LENGTH_SHORT).show()

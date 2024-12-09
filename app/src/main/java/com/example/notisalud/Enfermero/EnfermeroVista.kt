@@ -31,17 +31,54 @@ class EnfermeroVista : ComponentActivity() {
                         FirebaseFirestore.getInstance()
                             .collection("Users")
                             .document(pacienteId)
-                            .collection("problemasDeSalud")
-                            .get()
-                            .addOnSuccessListener { problemasSnapshot ->
-                                val problema = problemasSnapshot.documents.firstOrNull()
-                                val intent = Intent(this, EnfermeroActivity::class.java).apply {
-                                    putExtra("pacienteId", pacienteId)
-                                    putExtra("descripcion", problema?.getString("descripcion") ?: "No disponible")
-                                    putExtra("detallesFiebre", problema?.getString("detallesFiebre") ?: "No aplica")
-                                    putExtra("detallesAlergia", problema?.getString("detallesAlergia") ?: "No aplica")
-                                }
-                                startActivity(intent)
+                            .get() // Obtener el documento del paciente
+                            .addOnSuccessListener { document ->
+                                // Asegurarse de obtener correctamente los campos 'nombre' y 'apellido'
+                                val nombre = document.getString("nombre")
+                                val apellido = document.getString("apellido")
+
+                                // Obtener la información de problemas de salud
+                                FirebaseFirestore.getInstance()
+                                    .collection("Users")
+                                    .document(pacienteId)
+                                    .collection("problemasDeSalud")
+                                    .get()
+                                    .addOnSuccessListener { problemasSnapshot ->
+                                        val problema = problemasSnapshot.documents.firstOrNull()
+
+                                        // Obtener los datos relevantes
+                                        val descripcion = problema?.getString("descripcion") ?: "No disponible"
+                                        val detallesAlergia = problema?.getString("detallesAlergia") ?: "No aplica"
+                                        val tieneAlergia = problema?.getBoolean("tieneAlergia") ?: false
+                                        val tieneFiebre = problema?.getBoolean("tieneFiebre") ?: false
+                                        val duracionFiebre = problema?.getString("duracionFiebre") ?: "0"
+                                        val categorizacion = problema?.getString("categorizacion") ?: "No especificado"
+
+                                        // Definir el texto de fiebre dependiendo de la duración y el estado
+                                        val fiebreTexto = if (tieneFiebre) {
+                                            "$duracionFiebre día(s)"
+                                        } else {
+                                            "No tiene fiebre"
+                                        }
+
+                                        // Definir el texto de alergia dependiendo de si tiene o no alergia
+                                        val alergiaTexto = if (tieneAlergia) {
+                                            "$detallesAlergia"
+                                        } else {
+                                            "No tiene alergias reportadas"
+                                        }
+
+                                        // Crear un Intent para pasar los datos a la siguiente actividad
+                                        val intent = Intent(this, EnfermeroActivity::class.java).apply {
+                                            putExtra("pacienteId", pacienteId)
+                                            putExtra("descripcion", descripcion)
+                                            putExtra("detallesFiebre", fiebreTexto)
+                                            putExtra("detallesAlergia", alergiaTexto)
+                                            putExtra("categorizacion", categorizacion)
+                                            putExtra("nombreCompleto", "$nombre $apellido")
+                                        }
+                                        startActivity(intent) // Mueve esta línea aquí, dentro de la lambda
+                                    }
                             }
                     },
                     context = this
@@ -59,47 +96,65 @@ fun EnfermeroVistaScreen(
     context: android.content.Context
 ) {
     var pacientes by remember { mutableStateOf<List<PacienteEnfermero>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
 
     fun fetchData() {
-        isLoading = true
         val firestore = FirebaseFirestore.getInstance()
+
+        // Escuchar cambios en tiempo real de los usuarios con rol "Paciente"
         firestore.collection("Users")
             .whereEqualTo("rol", "Paciente")
-            .get()
-            .addOnSuccessListener { querySnapshot ->
+            .addSnapshotListener { querySnapshot, error ->
+                if (error != null) {
+                    Toast.makeText(
+                        context,
+                        "Error al cargar pacientes: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    isLoading = false
+                    return@addSnapshotListener
+                }
+
+                // Limpiar la lista de pacientes antes de agregar nuevos
                 val pacientesList = mutableListOf<PacienteEnfermero>()
-                querySnapshot.documents.forEach { document ->
+
+                querySnapshot?.documents?.forEach { document ->
                     val userId = document.id
                     val nombre = document.getString("nombre")
                     val apellido = document.getString("apellido")
 
-                    firestore.collection("Users")
-                        .document(userId)
-                        .collection("problemasDeSalud")
-                        .get()
-                        .addOnSuccessListener { problemasSnapshot ->
-                            if (!problemasSnapshot.isEmpty && nombre != null && apellido != null) {
-                                pacientesList.add(PacienteEnfermero(userId, "$nombre $apellido"))
+                    // Solo agregamos pacientes si tienen nombre y apellido
+                    if (!nombre.isNullOrEmpty() && !apellido.isNullOrEmpty()) {
+                        // Verificar si el paciente tiene problemas de salud
+                        firestore.collection("Users")
+                            .document(userId)
+                            .collection("problemasDeSalud")
+                            .whereEqualTo("categorizacion", "pendiente") // Añadir este filtro
+                            .addSnapshotListener { problemasSnapshot, problemasError ->
+                                if (problemasError != null) {
+                                    Toast.makeText(
+                                        context,
+                                        "Error al cargar problemas de salud: ${problemasError.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    isLoading = false
+                                    return@addSnapshotListener
+                                }
+
+                                // Si el paciente tiene problemas de salud, agregarlo a la lista
+                                if (problemasSnapshot != null && !problemasSnapshot.isEmpty) {
+                                    pacientesList.add(PacienteEnfermero(userId, "$nombre $apellido"))
+                                }
+
+                                // Actualiza la lista de pacientes cuando haya cambios en la base de datos
+                                pacientes = pacientesList
+                                isLoading = false
                             }
-                            pacientes = pacientesList
-                            isLoading = false
-                        }
-                        .addOnFailureListener {
-                            Toast.makeText(
-                                context,
-                                "Error al cargar problemas de salud: ${it.message}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            isLoading = false
-                        }
+                    }
                 }
             }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error al cargar pacientes: ${it.message}", Toast.LENGTH_SHORT).show()
-                isLoading = false
-            }
     }
+
 
     Scaffold(
         topBar = {
