@@ -9,11 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
@@ -43,6 +45,7 @@ class MedicoPacienteCheck : ComponentActivity() {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicoPacienteCheckScreen(
@@ -56,7 +59,9 @@ fun MedicoPacienteCheckScreen(
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
 
-    var examenTexto by remember { mutableStateOf("") }
+    var examenOrina by remember { mutableStateOf(false) }
+    var examenSangre by remember { mutableStateOf(false) }
+    var motivoAlta by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -88,36 +93,69 @@ fun MedicoPacienteCheckScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = examenTexto,
-                onValueChange = { examenTexto = it },
-                label = { Text("Tipo de Examen") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = examenOrina,
+                    onCheckedChange = { examenOrina = it }
+                )
+                Text("Examen de Orina")
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = examenSangre,
+                    onCheckedChange = { examenSangre = it }
+                )
+                Text("Examen de Sangre")
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
-                    val examen = examenTexto.trim()
-                    if (examen.isNotEmpty()) {
-                        val examenData = hashMapOf(
-                            "Examen" to examen,
-                            "Fecha" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
-                        )
+                    val examenes = mutableListOf<String>()
+                    if (examenOrina) examenes.add("Examen de Orina")
+                    if (examenSangre) examenes.add("Examen de Sangre")
+
+                    if (examenes.isNotEmpty()) {
+                        val examenesTexto = examenes.joinToString(", ")
+                        val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
 
                         db.collection("Users")
                             .document(userId)
-                            .collection("Examenes")
-                            .add(examenData)
-                            .addOnSuccessListener {
-                                Toast.makeText(context, "Examen registrado exitosamente.", Toast.LENGTH_SHORT).show()
+                            .collection("problemasDeSalud")
+                            .whereEqualTo("descripcion", problemaSalud)
+                            .get()
+                            .addOnSuccessListener { querySnapshot ->
+                                if (!querySnapshot.isEmpty) {
+                                    val documentId = querySnapshot.documents[0].id
+                                    val updateData: Map<String, Any> = mapOf(
+                                        "Examenes" to FieldValue.arrayUnion(examenesTexto),
+                                        "FechaExamenes" to FieldValue.arrayUnion(fechaActual)
+                                    )
+
+                                    db.collection("Users")
+                                        .document(userId)
+                                        .collection("problemasDeSalud")
+                                        .document(documentId)
+                                        .update(updateData)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Exámenes registrados exitosamente.", Toast.LENGTH_SHORT).show()
+                                            examenOrina = false
+                                            examenSangre = false
+                                        }
+                                        .addOnFailureListener {
+                                            Toast.makeText(context, "Error al registrar los exámenes.", Toast.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    Toast.makeText(context, "No se encontró el problema de salud.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                             .addOnFailureListener {
-                                Toast.makeText(context, "Error al registrar el examen.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Error al buscar el problema de salud.", Toast.LENGTH_SHORT).show()
                             }
                     } else {
-                        Toast.makeText(context, "Por favor, ingrese un tipo de examen.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Seleccione al menos un examen.", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -128,8 +166,8 @@ fun MedicoPacienteCheckScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = "",
-                onValueChange = {},
+                value = motivoAlta,
+                onValueChange = { motivoAlta = it },
                 label = { Text("Motivo de Alta") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -138,7 +176,42 @@ fun MedicoPacienteCheckScreen(
 
             Button(
                 onClick = {
-                    Toast.makeText(context, "Paciente dado de alta.", Toast.LENGTH_SHORT).show()
+                    if (motivoAlta.isNotEmpty()) {
+                        db.collection("Users")
+                            .document(userId)
+                            .collection("problemasDeSalud")
+                            .whereEqualTo("descripcion", problemaSalud)
+                            .get()
+                            .addOnSuccessListener { querySnapshot ->
+                                if (!querySnapshot.isEmpty) {
+                                    val documentId = querySnapshot.documents[0].id
+                                    val updateData: Map<String, Any> = mapOf(
+                                        "MotivoAlta" to motivoAlta,
+                                        "FechaAlta" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                                    )
+
+                                    db.collection("Users")
+                                        .document(userId)
+                                        .collection("problemasDeSalud")
+                                        .document(documentId)
+                                        .update(updateData)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Paciente dado de alta.", Toast.LENGTH_SHORT).show()
+                                            motivoAlta = ""
+                                        }
+                                        .addOnFailureListener {
+                                            Toast.makeText(context, "Error al dar de alta.", Toast.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    Toast.makeText(context, "No se encontró el problema de salud.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(context, "Error al buscar el problema de salud.", Toast.LENGTH_SHORT).show()
+                            }
+                    } else {
+                        Toast.makeText(context, "Ingrese un motivo de alta.", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

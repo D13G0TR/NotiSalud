@@ -39,6 +39,8 @@ import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
+import com.example.notisalud.Paramedico.ParamedicoVista
+
 
 class MainActivity : ComponentActivity() {
 
@@ -125,6 +127,11 @@ class MainActivity : ComponentActivity() {
                                             startActivity(intent)
                                             finish()
                                         }
+                                        "Paramedico" -> {
+                                            val intent = Intent(this, ParamedicoVista::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
                                         else -> {
                                             Toast.makeText(this, "Rol no reconocido.", Toast.LENGTH_SHORT).show()
                                         }
@@ -146,6 +153,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
 
 
     @Composable
