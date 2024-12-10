@@ -37,6 +37,11 @@ class MedicoVista : ComponentActivity() {
                             val intent = Intent(this, MedicoPacienteActivity::class.java)
                             startActivity(intent)
                         },
+                        onValidacionLaboratorioClick = {
+                            // Redirigir a MedicoLaboratorioActivity
+                            val intent = Intent(this, MedicoLaboratorioActivity::class.java)
+                            startActivity(intent)
+                        },
                         onCerrarSesionClick = {
                             // Cerrar sesión y redirigir a MainActivity
                             auth.signOut()
@@ -56,6 +61,7 @@ class MedicoVista : ComponentActivity() {
 fun MedicoVistaScreen(
     modifier: Modifier = Modifier,
     onPacientesCategorizadosClick: () -> Unit,
+    onValidacionLaboratorioClick: () -> Unit,
     onCerrarSesionClick: () -> Unit
 ) {
     Column(
@@ -75,22 +81,22 @@ fun MedicoVistaScreen(
             Text(text = "Pacientes Categorizados")
         }
 
-        // Botón de Cerrar Sesión
+        // Botón de Validación de Laboratorio
         Button(
-            onClick = onCerrarSesionClick,
+            onClick = onValidacionLaboratorioClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            Text(text = "Cerrar Sesión")
+            Text(text = "Validación de Laboratorio")
         }
 
-        // Botón de Validación de Laboratorio (sin funcionalidad por ahora)
+        // Botón de Cerrar Sesión
         Button(
-            onClick = { /* TODO: Implementar funcionalidad futura */ },
+            onClick = onCerrarSesionClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Validación de Laboratorio")
+            Text(text = "Cerrar Sesión")
         }
     }
 }
@@ -101,6 +107,7 @@ fun MedicoVistaPreview() {
     AppTheme {
         MedicoVistaScreen(
             onPacientesCategorizadosClick = {},
+            onValidacionLaboratorioClick = {},
             onCerrarSesionClick = {}
         )
     }
