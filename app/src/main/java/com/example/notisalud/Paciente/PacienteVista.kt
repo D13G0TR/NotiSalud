@@ -97,7 +97,7 @@ fun PacienteVistaScreen(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            Text("Otras Funcionalidades")
+            Text("Historial de Notificaciónes")
         }
 
         // Botón de cerrar sesión

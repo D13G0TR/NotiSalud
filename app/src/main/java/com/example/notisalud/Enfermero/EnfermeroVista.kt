@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
 
 class EnfermeroVista : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,13 +32,11 @@ class EnfermeroVista : ComponentActivity() {
                         FirebaseFirestore.getInstance()
                             .collection("Users")
                             .document(pacienteId)
-                            .get() // Obtener el documento del paciente
+                            .get()
                             .addOnSuccessListener { document ->
-                                // Asegurarse de obtener correctamente los campos 'nombre' y 'apellido'
                                 val nombre = document.getString("nombre")
                                 val apellido = document.getString("apellido")
 
-                                // Obtener la información de problemas de salud
                                 FirebaseFirestore.getInstance()
                                     .collection("Users")
                                     .document(pacienteId)
@@ -45,39 +44,34 @@ class EnfermeroVista : ComponentActivity() {
                                     .get()
                                     .addOnSuccessListener { problemasSnapshot ->
                                         val problema = problemasSnapshot.documents.firstOrNull()
-
-                                        // Obtener los datos relevantes
                                         val descripcion = problema?.getString("descripcion") ?: "No disponible"
                                         val detallesAlergia = problema?.getString("detallesAlergia") ?: "No aplica"
                                         val tieneAlergia = problema?.getBoolean("tieneAlergia") ?: false
                                         val tieneFiebre = problema?.getBoolean("tieneFiebre") ?: false
                                         val duracionFiebre = problema?.getString("duracionFiebre") ?: "0"
-                                        val Categorizacion = problema?.getString("Categorizacion") ?: "No especificado"
+                                        val categorizacion = problema?.getString("Categorizacion") ?: "No especificado"
 
-                                        // Definir el texto de fiebre dependiendo de la duración y el estado
                                         val fiebreTexto = if (tieneFiebre) {
                                             "$duracionFiebre día(s)"
                                         } else {
                                             "No tiene fiebre"
                                         }
 
-                                        // Definir el texto de alergia dependiendo de si tiene o no alergia
                                         val alergiaTexto = if (tieneAlergia) {
                                             "$detallesAlergia"
                                         } else {
                                             "No tiene alergias reportadas"
                                         }
 
-                                        // Crear un Intent para pasar los datos a la siguiente actividad
                                         val intent = Intent(this, EnfermeroActivity::class.java).apply {
                                             putExtra("pacienteId", pacienteId)
                                             putExtra("descripcion", descripcion)
                                             putExtra("detallesFiebre", fiebreTexto)
                                             putExtra("detallesAlergia", alergiaTexto)
-                                            putExtra("Categorizacion", Categorizacion)
+                                            putExtra("Categorizacion", categorizacion)
                                             putExtra("nombreCompleto", "$nombre $apellido")
                                         }
-                                        startActivity(intent) // Mueve esta línea aquí, dentro de la lambda
+                                        startActivity(intent)
                                     }
                             }
                     },
@@ -101,7 +95,6 @@ fun EnfermeroVistaScreen(
     fun fetchData() {
         val firestore = FirebaseFirestore.getInstance()
 
-        // Escuchar cambios en tiempo real de los usuarios con rol "Paciente"
         firestore.collection("Users")
             .whereEqualTo("rol", "Paciente")
             .addSnapshotListener { querySnapshot, error ->
@@ -115,7 +108,6 @@ fun EnfermeroVistaScreen(
                     return@addSnapshotListener
                 }
 
-                // Limpiar la lista de pacientes antes de agregar nuevos
                 val pacientesList = mutableListOf<PacienteEnfermero>()
 
                 querySnapshot?.documents?.forEach { document ->
@@ -123,9 +115,7 @@ fun EnfermeroVistaScreen(
                     val nombre = document.getString("nombre")
                     val apellido = document.getString("apellido")
 
-                    // Solo agregamos pacientes si tienen nombre y apellido
                     if (!nombre.isNullOrEmpty() && !apellido.isNullOrEmpty()) {
-                        // Verificar si el paciente tiene problemas de salud
                         firestore.collection("Users")
                             .document(userId)
                             .collection("problemasDeSalud")
@@ -141,12 +131,10 @@ fun EnfermeroVistaScreen(
                                     return@addSnapshotListener
                                 }
 
-                                // Si el paciente tiene problemas de salud, agregarlo a la lista
                                 if (problemasSnapshot != null && !problemasSnapshot.isEmpty) {
                                     pacientesList.add(PacienteEnfermero(userId, "$nombre $apellido"))
                                 }
 
-                                // Actualiza la lista de pacientes cuando haya cambios en la base de datos
                                 pacientes = pacientesList
                                 isLoading = false
                             }
@@ -154,7 +142,6 @@ fun EnfermeroVistaScreen(
                 }
             }
     }
-
 
     Scaffold(
         topBar = {
@@ -187,8 +174,8 @@ fun EnfermeroVistaScreen(
         }
     }
 
-    // Llamar a fetchData al cargar la pantalla
     LaunchedEffect(Unit) {
+        delay(3000) // Agregar retraso de 3 segundos
         fetchData()
     }
 }
