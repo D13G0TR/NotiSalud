@@ -18,7 +18,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 data class PacienteParamedico(
     val id: String,
-    val nombreCompleto: String
+    val nombreCompleto: String,
+    val examenes: List<String>
 )
 @OptIn(ExperimentalMaterial3Api::class)
 class ParamedicoActivity : ComponentActivity() {
@@ -55,6 +56,8 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
 
     // Cargar pacientes con el campo "Examenes"
     LaunchedEffect(Unit) {
+        isLoading = true
+        kotlinx.coroutines.delay(3000) // Retraso de 1.5 segundos para asegurar la carga
         db.collection("Users")
             .get()
             .addOnSuccessListener { querySnapshot ->
@@ -65,8 +68,17 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
                         .get()
                         .addOnSuccessListener { problemasSnapshot ->
                             problemasSnapshot.documents.forEach { problemaDoc ->
+                                val examenes = problemaDoc["Examenes"] as? List<*>
                                 val nombreCompleto = "${userDoc.getString("nombre")} ${userDoc.getString("apellido")}"
-                                listaPacientes.add(PacienteParamedico(userDoc.id, nombreCompleto))
+                                if (examenes != null && examenes.isNotEmpty()) {
+                                    listaPacientes.add(
+                                        PacienteParamedico(
+                                            id = userDoc.id,
+                                            nombreCompleto = nombreCompleto,
+                                            examenes = examenes.filterIsInstance<String>() // Obtener todos los exámenes
+                                        )
+                                    )
+                                }
                             }
                             pacientes = listaPacientes
                             isLoading = false
@@ -85,7 +97,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
 
     if (isLoading) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator() // Mostrar indicador de carga
         }
     } else if (!errorMessage.isNullOrEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -100,6 +112,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
     }
 }
 
+
 @Composable
 fun PacienteItem(paciente: PacienteParamedico) {
     Card(
@@ -110,6 +123,16 @@ fun PacienteItem(paciente: PacienteParamedico) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Nombre: ${paciente.nombreCompleto}")
+            Spacer(modifier = Modifier.height(4.dp))
+            // Mostrar cada examen en una línea separada
+            paciente.examenes.forEach { examen ->
+                Text(
+                    text = "Examen: $examen",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
+
