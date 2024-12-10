@@ -42,6 +42,8 @@
 
         <!-- Paramedico Activities -->
         <activity android:name=".Paramedico.ParamedicoVista" android:exported="false" />
+        <activity android:name=".Paramedico.ParamedicoActivity" android:exported="false" />
+
 
         <!-- Exámenes Activities -->
         <activity android:name=".Examen.LaboratorioVista" android:exported="false" />
