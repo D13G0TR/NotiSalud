@@ -90,13 +90,24 @@ class PacienteVista : ComponentActivity() {
 
                 snapshots?.documentChanges?.forEach { change ->
                     val data = change.document.data
+
+                    // Notificación por estado del examen
+                    val estadoExamen = data["EstadodeExamen"] as? String
+                    if (estadoExamen == "Notificando") {
+                        val descripcion = data["descripcion"] as? String ?: "Examen disponible"
+                        mostrarNotificacion(
+                            "Examen Disponible",
+                            "Tu examen: $descripcion está listo. Por favor, acércate al mesón."
+                        )
+                    }
+
+                    // Notificación por alta del paciente
                     val motivoAlta = data["MotivoAlta"] as? String
                     val fechaAlta = data["FechaAlta"] as? String
-
                     if (motivoAlta != null && fechaAlta != null) {
                         mostrarNotificacion(
                             "Alta Médica",
-                            "Has sido dado de alta. Motivo: $motivoAlta. Fecha: $fechaAlta"
+                            "Has sido dado de alta el $fechaAlta. Motivo: $motivoAlta."
                         )
                     }
                 }
@@ -123,10 +134,10 @@ class PacienteVista : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "examenChannel",
-                "Notificaciones de Examen y Alta Médica",
+                "Notificaciones de Examen y Alta",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notificaciones cuando los exámenes están listos o los pacientes son dados de alta."
+                description = "Notificaciones relacionadas con exámenes y alta médica."
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
