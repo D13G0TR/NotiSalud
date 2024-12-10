@@ -47,7 +47,7 @@
 
         <!-- Exámenes Activities -->
         <activity android:name=".Examen.LaboratorioVista" android:exported="false" />
-        <activity android:name=".Examen.RadiologiaVista" android:exported="false" />
+        <activity android:name=".Examen.LaboratorioActivity" android:exported="false" />
 
         <!-- Registro -->
         <activity android:name=".RegistroActivity" android:exported="false" />

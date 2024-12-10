@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.notisalud.Enfermero.EnfermeroVista
+import com.example.notisalud.Examen.LaboratorioVista
 import com.example.notisalud.Medico.MedicoVista
 import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
@@ -132,6 +133,11 @@ class MainActivity : ComponentActivity() {
                                             startActivity(intent)
                                             finish()
                                         }
+                                        "Laboratorio" -> {
+                                            val intent = Intent(this, LaboratorioVista::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
                                         else -> {
                                             Toast.makeText(this, "Rol no reconocido.", Toast.LENGTH_SHORT).show()
                                         }
@@ -153,6 +159,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
 
 
 

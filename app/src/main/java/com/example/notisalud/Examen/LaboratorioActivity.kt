@@ -1,4 +1,4 @@
-package com.example.notisalud.Paramedico
+package com.example.notisalud.Examen
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,15 +18,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.delay
 
-data class PacienteParamedico(
-    val problemaId: String, // ID de la subcolección problema
+data class PacienteLaboratorio(
+    val problemaId: String, // ID del problema de salud
     val userId: String, // ID del usuario
     val nombreCompleto: String,
     val examenes: List<String>
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
-class ParamedicoActivity : ComponentActivity() {
+class LaboratorioActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -35,7 +35,7 @@ class ParamedicoActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
                         TopAppBar(
-                            title = { Text("Pacientes con Exámenes") },
+                            title = { Text("Laboratorio") },
                             navigationIcon = {
                                 IconButton(onClick = { finish() }) {
                                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -44,7 +44,7 @@ class ParamedicoActivity : ComponentActivity() {
                         )
                     }
                 ) { padding ->
-                    ParamedicoListScreen(modifier = Modifier.padding(padding))
+                    LaboratorioListScreen(modifier = Modifier.padding(padding))
                 }
             }
         }
@@ -52,31 +52,31 @@ class ParamedicoActivity : ComponentActivity() {
 }
 
 @Composable
-fun ParamedicoListScreen(modifier: Modifier = Modifier) {
+fun LaboratorioListScreen(modifier: Modifier = Modifier) {
     val db = FirebaseFirestore.getInstance()
-    var pacientes by remember { mutableStateOf<List<PacienteParamedico>>(emptyList()) }
+    var pacientes by remember { mutableStateOf<List<PacienteLaboratorio>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Cargar pacientes con el campo "Examenes"
+    // Cargar pacientes con "EstadodeExamen" igual a "EnEspera"
     LaunchedEffect(Unit) {
         isLoading = true
         delay(3000) // Retraso de 3 segundos para asegurar la carga
         db.collection("Users")
             .get()
             .addOnSuccessListener { querySnapshot ->
-                val listaPacientes = mutableListOf<PacienteParamedico>()
+                val listaPacientes = mutableListOf<PacienteLaboratorio>()
                 querySnapshot.documents.forEach { userDoc ->
                     userDoc.reference.collection("problemasDeSalud")
-                        .whereNotEqualTo("Examenes", null)
+                        .whereEqualTo("EstadodeExamen", "EnEspera")
                         .get()
                         .addOnSuccessListener { problemasSnapshot ->
                             problemasSnapshot.documents.forEach { problemaDoc ->
                                 val examenes = problemaDoc["Examenes"] as? List<*>
                                 val nombreCompleto = "${userDoc.getString("nombre")} ${userDoc.getString("apellido")}"
-                                if (examenes != null && examenes.isNotEmpty() && problemaDoc["EstadodeExamen"] == null) {
+                                if (examenes != null && examenes.isNotEmpty()) {
                                     listaPacientes.add(
-                                        PacienteParamedico(
+                                        PacienteLaboratorio(
                                             problemaId = problemaDoc.id,
                                             userId = userDoc.id,
                                             nombreCompleto = nombreCompleto,
@@ -127,7 +127,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -> Unit) {
+fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio) -> Unit) {
     var isChecked by remember { mutableStateOf(false) } // Estado del CheckBox local
     var showDialog by remember { mutableStateOf(false) }
 
@@ -135,7 +135,7 @@ fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text("Confirmación") },
-            text = { Text("¿Desea confirmar el Examen para ${paciente.nombreCompleto}?") },
+            text = { Text("¿Desea marcar como 'Completado' el examen para ${paciente.nombreCompleto}?") },
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
@@ -192,27 +192,26 @@ fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -
     }
 }
 
-
 fun confirmarExamen(
-    paciente: PacienteParamedico,
+    paciente: PacienteLaboratorio,
     db: FirebaseFirestore,
-    pacientes: List<PacienteParamedico>,
-    onExamenConfirmado: (List<PacienteParamedico>) -> Unit
+    pacientes: List<PacienteLaboratorio>,
+    onExamenConfirmado: (List<PacienteLaboratorio>) -> Unit
 ) {
-    // Crear el campo "EstadodeExamen" en Firestore
+    // Actualizar el campo "EstadodeExamen" a "Completado"
     db.collection("Users")
         .document(paciente.userId)
         .collection("problemasDeSalud")
         .document(paciente.problemaId)
-        .set(mapOf("EstadodeExamen" to "EnEspera"), SetOptions.merge())
+        .set(mapOf("EstadodeExamen" to "Completado"), SetOptions.merge())
         .addOnSuccessListener {
-            println("Campo 'EstadodeExamen' creado para: ${paciente.nombreCompleto}")
+            println("Campo 'EstadodeExamen' actualizado a 'Completado' para: ${paciente.nombreCompleto}")
             // Filtrar al paciente del listado después de actualizar Firestore
             onExamenConfirmado(
                 pacientes.filter { it.problemaId != paciente.problemaId }
             )
         }
         .addOnFailureListener { e ->
-            println("Error al crear el campo 'EstadodeExamen': ${e.message}")
+            println("Error al actualizar el campo 'EstadodeExamen': ${e.message}")
         }
 }
