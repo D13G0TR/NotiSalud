@@ -1,14 +1,14 @@
 package com.example.notisalud.Paciente
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -16,16 +16,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationCompat
 import com.example.notisalud.MainActivity
 import com.example.notisalud.ui.theme.AppTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class PacienteVista : ComponentActivity() {
+
+    private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inicializar Firebase Auth y Firestore
+        auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
+
+        // Crear canal de notificaciones
+        createNotificationChannel()
 
         // Recupera el nombre y apellido del intent
         val firstName = intent.getStringExtra("firstName") ?: "Nombre no disponible"
         val lastName = intent.getStringExtra("lastName") ?: "Apellido no disponible"
+
+        // Configurar el listener para notificaciones en tiempo real
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            setupFirestoreListener(userId)
+        }
 
         setContent {
             AppTheme {
@@ -47,14 +67,69 @@ class PacienteVista : ComponentActivity() {
                             startActivity(intent)
                         },
                         onCloseSessionClick = {
-                            // Redirige a MainActivity
+                            // Cerrar sesión y redirigir a MainActivity
                             val intent = Intent(this, MainActivity::class.java)
                             startActivity(intent)
-                            finish() // Finaliza la actividad actual para evitar volver con el botón "Atrás"
+                            finish()
                         }
                     )
                 }
             }
+        }
+    }
+
+    private fun setupFirestoreListener(userId: String) {
+        firestore.collection("Users")
+            .document(userId)
+            .collection("problemasDeSalud")
+            .addSnapshotListener { snapshots, error ->
+                if (error != null) {
+                    println("Error al escuchar cambios: ${error.message}")
+                    return@addSnapshotListener
+                }
+
+                snapshots?.documentChanges?.forEach { change ->
+                    val data = change.document.data
+                    val motivoAlta = data["MotivoAlta"] as? String
+                    val fechaAlta = data["FechaAlta"] as? String
+
+                    if (motivoAlta != null && fechaAlta != null) {
+                        mostrarNotificacion(
+                            "Alta Médica",
+                            "Has sido dado de alta. Motivo: $motivoAlta. Fecha: $fechaAlta"
+                        )
+                    }
+                }
+            }
+    }
+
+    private fun mostrarNotificacion(titulo: String, mensaje: String) {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notificationId = (System.currentTimeMillis() % 10000).toInt() // ID único para cada notificación
+        val notification = NotificationCompat.Builder(this, "examenChannel")
+            .setSmallIcon(android.R.drawable.ic_dialog_info) // Usa un ícono apropiado
+            .setContentTitle(titulo)
+            .setContentText(mensaje)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "examenChannel",
+                "Notificaciones de Examen y Alta Médica",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificaciones cuando los exámenes están listos o los pacientes son dados de alta."
+            }
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
         }
     }
 }
@@ -90,14 +165,14 @@ fun PacienteVistaScreen(
             Text("Ingreso a Urgencias")
         }
 
-        // Botón de otras funcionalidades (ejemplo)
+        // Botón para historial de notificaciones (sin funcionalidad)
         Button(
-            onClick = { /* Implementar más acciones si es necesario */ },
+            onClick = { /* Implementar funcionalidad si es necesario */ },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            Text("Historial de Notificaciónes")
+            Text("Historial de Notificaciones")
         }
 
         // Botón de cerrar sesión

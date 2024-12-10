@@ -58,20 +58,23 @@ fun MedicoLaboratorioListScreen(modifier: Modifier = Modifier) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Cargar pacientes con "EstadodeExamen" igual a "Completado"
+    // Escucha cambios en tiempo real
     LaunchedEffect(Unit) {
         isLoading = true
-        delay(3000) // Retraso de 3 segundos para asegurar la carga
-        db.collection("Users")
-            .get()
+        delay(3000) // Retraso de 3 segundos para cargar datos
+        db.collection("Users").get()
             .addOnSuccessListener { querySnapshot ->
                 val listaPacientes = mutableListOf<PacienteMedicoLaboratorio>()
                 querySnapshot.documents.forEach { userDoc ->
                     userDoc.reference.collection("problemasDeSalud")
                         .whereEqualTo("EstadodeExamen", "Completado")
-                        .get()
-                        .addOnSuccessListener { problemasSnapshot ->
-                            problemasSnapshot.documents.forEach { problemaDoc ->
+                        .addSnapshotListener { problemasSnapshot, error ->
+                            if (error != null) {
+                                errorMessage = "Error al escuchar cambios: ${error.message}"
+                                return@addSnapshotListener
+                            }
+
+                            problemasSnapshot?.documents?.forEach { problemaDoc ->
                                 val examenes = problemaDoc["Examenes"] as? List<*>
                                 val nombreCompleto = "${userDoc.getString("nombre")} ${userDoc.getString("apellido")}"
                                 if (examenes != null && examenes.isNotEmpty()) {
@@ -80,16 +83,12 @@ fun MedicoLaboratorioListScreen(modifier: Modifier = Modifier) {
                                             problemaId = problemaDoc.id,
                                             userId = userDoc.id,
                                             nombreCompleto = nombreCompleto,
-                                            examenes = examenes.filterIsInstance<String>() // Obtener todos los exámenes
+                                            examenes = examenes.filterIsInstance<String>() // Filtrar exámenes como cadenas
                                         )
                                     )
                                 }
                             }
                             pacientes = listaPacientes
-                            isLoading = false
-                        }
-                        .addOnFailureListener {
-                            errorMessage = "Error al cargar los problemas de salud."
                             isLoading = false
                         }
                 }
@@ -198,7 +197,6 @@ fun confirmarExamen(
     pacientes: List<PacienteMedicoLaboratorio>,
     onExamenConfirmado: (List<PacienteMedicoLaboratorio>) -> Unit
 ) {
-    // Actualizar el campo "EstadodeExamen" a "Notificando"
     db.collection("Users")
         .document(paciente.userId)
         .collection("problemasDeSalud")
@@ -206,7 +204,6 @@ fun confirmarExamen(
         .set(mapOf("EstadodeExamen" to "Notificando"), SetOptions.merge())
         .addOnSuccessListener {
             println("Campo 'EstadodeExamen' actualizado a 'Notificando' para: ${paciente.nombreCompleto}")
-            // Filtrar al paciente del listado después de actualizar Firestore
             onExamenConfirmado(
                 pacientes.filter { it.problemaId != paciente.problemaId }
             )
