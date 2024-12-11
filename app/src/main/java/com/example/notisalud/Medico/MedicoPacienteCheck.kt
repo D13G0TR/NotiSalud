@@ -1,5 +1,6 @@
 package com.example.notisalud.Medico
 
+import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -29,7 +30,7 @@ class MedicoPacienteCheck : ComponentActivity() {
         val problemaSalud = intent.getStringExtra("problemaSalud") ?: "Sin descripción"
         val fiebre = intent.getStringExtra("fiebre") ?: "No aplica"
         val alergia = intent.getStringExtra("alergia") ?: "No aplica"
-        val categorizacion = intent.getStringExtra("categorizacion") ?: "No categorizado"
+        val Categorizacion = intent.getStringExtra("Categorizacion") ?: "No categorizado"
 
         setContent {
             AppTheme {
@@ -39,7 +40,7 @@ class MedicoPacienteCheck : ComponentActivity() {
                     problemaSalud = problemaSalud,
                     fiebre = fiebre,
                     alergia = alergia,
-                    categorizacion = categorizacion
+                    Categorizacion = Categorizacion
                 )
             }
         }
@@ -54,7 +55,7 @@ fun MedicoPacienteCheckScreen(
     problemaSalud: String,
     fiebre: String,
     alergia: String,
-    categorizacion: String
+    Categorizacion: String
 ) {
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
@@ -68,7 +69,9 @@ fun MedicoPacienteCheckScreen(
             TopAppBar(
                 title = { Text("Detalles del Paciente") },
                 navigationIcon = {
-                    IconButton(onClick = { /* Acción para regresar */ }) {
+                    IconButton(onClick = {
+                        (context as? Activity)?.onBackPressed()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 }
@@ -89,7 +92,7 @@ fun MedicoPacienteCheckScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Alergias: $alergia")
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Categorización: $categorizacion")
+            Text("Categorización: $Categorizacion")
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -187,7 +190,8 @@ fun MedicoPacienteCheckScreen(
                                     val documentId = querySnapshot.documents[0].id
                                     val updateData: Map<String, Any> = mapOf(
                                         "MotivoAlta" to motivoAlta,
-                                        "FechaAlta" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                                        "FechaAlta" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()),
+                                        "EstadoAlta" to true
                                     )
 
                                     db.collection("Users")
@@ -231,7 +235,7 @@ fun PreviewMedicoPacienteCheckScreen() {
             problemaSalud = "Fractura de Rodilla",
             fiebre = "No aplica",
             alergia = "Paracetamol",
-            categorizacion = "Atención General"
+            Categorizacion = "Atención General"
         )
     }
 }

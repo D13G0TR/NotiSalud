@@ -67,12 +67,20 @@ class PacienteActivity : ComponentActivity() {
                 .collection("problemasDeSalud")
                 .add(problemaSalud)
                 .addOnSuccessListener {
-                    Toast.makeText(this, "Problema de salud enviado exitosamente", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "Problema de salud enviado exitosamente",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     enviarNotificacionParaEnfermeros()
                     finish()
                 }
                 .addOnFailureListener { exception ->
-                    Toast.makeText(this, "Error al enviar: ${exception.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "Error al enviar: ${exception.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
         } else {
             Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show()
@@ -80,26 +88,43 @@ class PacienteActivity : ComponentActivity() {
     }
 
     private fun enviarNotificacionParaEnfermeros() {
-        FirebaseFirestore.getInstance().collection("notifications")
-            .add(
-                mapOf(
-                    "to" to "/topics/enfermeros",
-                    "notification" to mapOf(
-                        "title" to "Nuevo paciente",
-                        "body" to "Un nuevo paciente necesita categorización."
-                    )
-                )
-            )
-            .addOnSuccessListener {
-                println("Notificación enviada correctamente a los enfermeros")
+        val db = FirebaseFirestore.getInstance()
+
+        // Obtener todos los usuarios con el rol 'Enfermero'
+        db.collection("Users")
+            .whereEqualTo("rol", "Enfermero")
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                // Recorremos cada enfermero encontrado
+                querySnapshot.documents.forEach { userDoc ->
+                    val userId = userDoc.id
+
+                    // Guarda la notificación en la subcolección 'notifications' de enfermero
+                    db.collection("Users")
+                        .document(userId)
+                        .collection("notifications")
+                        .add(
+                            mapOf(
+                                "title" to "Nuevo paciente",
+                                "body" to "Un nuevo paciente necesita categorización.",
+                                "timestamp" to com.google.firebase.Timestamp.now()
+                            )
+                        )
+                        .addOnSuccessListener {
+                            println("Notificación enviada correctamente a enfermero $userId")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Error al enviar la notificación: ${e.message}")
+                        }
+                }
             }
             .addOnFailureListener { e ->
-                println("Error al enviar la notificación: ${e.message}")
+                println("Error al obtener los enfermeros: ${e.message}")
             }
     }
 }
 
-@Composable
+    @Composable
 fun PacienteScreen(
     modifier: Modifier = Modifier,
     onEnviar: (String, Boolean, String?, Boolean, String?) -> Unit

@@ -175,7 +175,7 @@ fun EnfermeroVistaScreen(
     }
 
     LaunchedEffect(Unit) {
-        delay(3000) // Agregar retraso de 3 segundos
+        delay(3000)
         fetchData()
     }
 }

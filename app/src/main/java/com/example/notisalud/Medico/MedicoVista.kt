@@ -71,7 +71,7 @@ fun MedicoVistaScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Botón de Pacientes Categorizados
+
         Button(
             onClick = onPacientesCategorizadosClick,
             modifier = Modifier
@@ -81,7 +81,6 @@ fun MedicoVistaScreen(
             Text(text = "Pacientes Categorizados")
         }
 
-        // Botón de Validación de Laboratorio
         Button(
             onClick = onValidacionLaboratorioClick,
             modifier = Modifier
@@ -91,7 +90,6 @@ fun MedicoVistaScreen(
             Text(text = "Validación de Laboratorio")
         }
 
-        // Botón de Cerrar Sesión
         Button(
             onClick = onCerrarSesionClick,
             modifier = Modifier.fillMaxWidth()

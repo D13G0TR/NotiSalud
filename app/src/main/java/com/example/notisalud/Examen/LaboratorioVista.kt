@@ -52,7 +52,6 @@ class LaboratorioVista : ComponentActivity() {
     }
 
     private fun cerrarSesion() {
-        // Cerrar sesión y redirigir al MainActivity
         Toast.makeText(this, "Sesión cerrada.", Toast.LENGTH_SHORT).show()
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)

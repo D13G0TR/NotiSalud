@@ -19,8 +19,8 @@ import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.delay
 
 data class PacienteLaboratorio(
-    val problemaId: String, // ID del problema de salud
-    val userId: String, // ID del usuario
+    val problemaId: String,
+    val userId: String,
     val nombreCompleto: String,
     val examenes: List<String>
 )
@@ -61,7 +61,7 @@ fun LaboratorioListScreen(modifier: Modifier = Modifier) {
     // Cargar pacientes con "EstadodeExamen" igual a "EnEspera"
     LaunchedEffect(Unit) {
         isLoading = true
-        delay(3000) // Retraso de 3 segundos para asegurar la carga
+        delay(3000)
         db.collection("Users")
             .get()
             .addOnSuccessListener { querySnapshot ->
@@ -80,7 +80,7 @@ fun LaboratorioListScreen(modifier: Modifier = Modifier) {
                                             problemaId = problemaDoc.id,
                                             userId = userDoc.id,
                                             nombreCompleto = nombreCompleto,
-                                            examenes = examenes.filterIsInstance<String>() // Obtener todos los exámenes
+                                            examenes = examenes.filterIsInstance<String>()
                                         )
                                     )
                                 }
@@ -102,7 +102,7 @@ fun LaboratorioListScreen(modifier: Modifier = Modifier) {
 
     if (isLoading) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator() // Mostrar indicador de carga
+            CircularProgressIndicator()
         }
     } else if (!errorMessage.isNullOrEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,7 +128,7 @@ fun LaboratorioListScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio) -> Unit) {
-    var isChecked by remember { mutableStateOf(false) } // Estado del CheckBox local
+    var isChecked by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
@@ -139,8 +139,8 @@ fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio)
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    isChecked = false // Reiniciar el estado del CheckBox
-                    onConfirm(paciente) // Llamar a la función de confirmación
+                    isChecked = false
+                    onConfirm(paciente)
                 }) {
                     Text("Aceptar")
                 }
@@ -148,7 +148,7 @@ fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio)
             dismissButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    isChecked = false // Reiniciar el estado si se cancela
+                    isChecked = false
                 }) {
                     Text("Cancelar")
                 }
@@ -171,9 +171,9 @@ fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio)
             Column(modifier = Modifier.weight(1f)) {
                 Text("Nombre: ${paciente.nombreCompleto}")
                 Spacer(modifier = Modifier.height(4.dp))
-                paciente.examenes.forEach { examen ->
+                paciente.examenes.forEach { examenes ->
                     Text(
-                        text = "Examen: $examen",
+                        text = "Examenes: $examenes",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -184,7 +184,7 @@ fun PacienteItem(paciente: PacienteLaboratorio, onConfirm: (PacienteLaboratorio)
                 onCheckedChange = { checked ->
                     isChecked = checked
                     if (checked) {
-                        showDialog = true // Mostrar la alerta
+                        showDialog = true
                     }
                 }
             )
@@ -206,7 +206,7 @@ fun confirmarExamen(
         .set(mapOf("EstadodeExamen" to "Completado"), SetOptions.merge())
         .addOnSuccessListener {
             println("Campo 'EstadodeExamen' actualizado a 'Completado' para: ${paciente.nombreCompleto}")
-            // Filtrar al paciente del listado después de actualizar Firestore
+            // Filtra al paciente del listado después de actualizar Firestore
             onExamenConfirmado(
                 pacientes.filter { it.problemaId != paciente.problemaId }
             )

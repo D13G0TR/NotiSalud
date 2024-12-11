@@ -19,8 +19,8 @@ import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.delay
 
 data class PacienteParamedico(
-    val problemaId: String, // ID de la subcolección problema
-    val userId: String, // ID del usuario
+    val problemaId: String,
+    val userId: String,
     val nombreCompleto: String,
     val examenes: List<String>
 )
@@ -61,7 +61,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
     // Cargar pacientes con el campo "Examenes"
     LaunchedEffect(Unit) {
         isLoading = true
-        delay(3000) // Retraso de 3 segundos para asegurar la carga
+        delay(3000)
         db.collection("Users")
             .get()
             .addOnSuccessListener { querySnapshot ->
@@ -80,7 +80,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
                                             problemaId = problemaDoc.id,
                                             userId = userDoc.id,
                                             nombreCompleto = nombreCompleto,
-                                            examenes = examenes.filterIsInstance<String>() // Obtener todos los exámenes
+                                            examenes = examenes.filterIsInstance<String>()
                                         )
                                     )
                                 }
@@ -102,7 +102,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
 
     if (isLoading) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator() // Mostrar indicador de carga
+            CircularProgressIndicator()
         }
     } else if (!errorMessage.isNullOrEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,7 +128,7 @@ fun ParamedicoListScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -> Unit) {
-    var isChecked by remember { mutableStateOf(false) } // Estado del CheckBox local
+    var isChecked by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
@@ -139,8 +139,8 @@ fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    isChecked = false // Reiniciar el estado del CheckBox
-                    onConfirm(paciente) // Llamar a la función de confirmación
+                    isChecked = false
+                    onConfirm(paciente)
                 }) {
                     Text("Aceptar")
                 }
@@ -148,7 +148,7 @@ fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -
             dismissButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    isChecked = false // Reiniciar el estado si se cancela
+                    isChecked = false
                 }) {
                     Text("Cancelar")
                 }
@@ -184,7 +184,7 @@ fun PacienteItem(paciente: PacienteParamedico, onConfirm: (PacienteParamedico) -
                 onCheckedChange = { checked ->
                     isChecked = checked
                     if (checked) {
-                        showDialog = true // Mostrar la alerta
+                        showDialog = true
                     }
                 }
             )
@@ -199,7 +199,7 @@ fun confirmarExamen(
     pacientes: List<PacienteParamedico>,
     onExamenConfirmado: (List<PacienteParamedico>) -> Unit
 ) {
-    // Crear el campo "EstadodeExamen" en Firestore
+    // Crea el campo "EstadodeExamen" en Firestore
     db.collection("Users")
         .document(paciente.userId)
         .collection("problemasDeSalud")
@@ -207,7 +207,7 @@ fun confirmarExamen(
         .set(mapOf("EstadodeExamen" to "EnEspera"), SetOptions.merge())
         .addOnSuccessListener {
             println("Campo 'EstadodeExamen' creado para: ${paciente.nombreCompleto}")
-            // Filtrar al paciente del listado después de actualizar Firestore
+            // Filtra paciente del listado después de actualizar Firestore
             onExamenConfirmado(
                 pacientes.filter { it.problemaId != paciente.problemaId }
             )

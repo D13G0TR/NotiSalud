@@ -1,8 +1,6 @@
 package com.example.notisalud
 
 import android.Manifest
-import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -39,7 +37,6 @@ import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.messaging.FirebaseMessaging
 import com.example.notisalud.Paramedico.ParamedicoVista
 
 
@@ -101,7 +98,7 @@ class MainActivity : ComponentActivity() {
                 if (task.isSuccessful) {
                     val userId = auth.currentUser?.uid
                     if (userId != null) {
-                        // Verificar el rol del usuario en Firestore
+                        // Verifica el rol del usuario en Firestore
                         firestore.collection("Users").document(userId).get()
                             .addOnSuccessListener { document ->
                                 if (document.exists()) {
@@ -160,18 +157,15 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-
-
-
     @Composable
-fun LoginScreen(
-    modifier: Modifier = Modifier,
-    onLogin: (String, String) -> Unit,
-    onRegister: () -> Unit
-) {
-    Box(modifier = modifier.fillMaxSize()) {
-        // Fondo de la pantalla
-        val background = painterResource(id = R.drawable.fondo) // Asegúrate de tener este recurso en `res/drawable`
+    fun LoginScreen(
+        modifier: Modifier = Modifier,
+        onLogin: (String, String) -> Unit,
+        onRegister: () -> Unit
+    ) {
+        Box(modifier = modifier.fillMaxSize()) {
+        // Fondo pantalla
+        val background = painterResource(id = R.drawable.fondo)
         Image(
             painter = background,
             contentDescription = null,
@@ -179,7 +173,6 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Contenido
         Column(
             modifier = Modifier
                 .padding(16.dp)
@@ -187,7 +180,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Slogan en la parte superior
+            // Slogan superior
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 16.dp)
@@ -204,7 +197,6 @@ fun LoginScreen(
                 )
             }
 
-            // Campos y botones
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -249,8 +241,8 @@ fun LoginScreen(
                 }
             }
 
-            // Logo en la parte inferior
-            val logo = painterResource(id = R.drawable.logo) // Asegúrate de tener este recurso en `res/drawable`
+            // Logo inferior
+            val logo = painterResource(id = R.drawable.logo)
             Image(
                 painter = logo,
                 contentDescription = "Logo NotiSalud",

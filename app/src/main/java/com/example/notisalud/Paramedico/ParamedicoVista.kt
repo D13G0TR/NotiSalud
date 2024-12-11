@@ -1,6 +1,5 @@
 package com.example.notisalud.Paramedico
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -25,7 +24,6 @@ class ParamedicoVista : ComponentActivity() {
             AppTheme {
                 ParamedicoVistaScreen(
                     onExamenesClick = {
-                        // Redirige al usuario a la pantalla `ParamedicoActivity`
                         val intent = Intent(this, ParamedicoActivity::class.java)
                         startActivity(intent)
                     },

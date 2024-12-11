@@ -30,6 +30,7 @@
         <!-- Paciente Activities -->
         <activity android:name=".Paciente.PacienteActivity" android:exported="false" />
         <activity android:name=".Paciente.PacienteVista" android:exported="false" />
+        <activity android:name=".Paciente.PacienteHistorial" android:exported="false" />
 
         <!-- Enfermero Activities -->
         <activity android:name=".Enfermero.EnfermeroActivity" android:exported="false" />

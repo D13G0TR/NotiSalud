@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.notisalud.Paciente.PacienteVista
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
@@ -85,7 +84,7 @@ class RegistroActivity : ComponentActivity() {
         var correo by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
 
-        val context = LocalContext.current // Obtén el contexto aquí
+        val context = LocalContext.current
 
         Column(
             modifier = modifier.padding(16.dp),
@@ -128,7 +127,6 @@ class RegistroActivity : ComponentActivity() {
                     if (nombre.isNotEmpty() && apellido.isNotEmpty() && edad.isNotEmpty() && correo.isNotEmpty() && password.isNotEmpty()) {
                         onRegister(nombre, apellido, edad, correo, password)
                     } else {
-                        // Usar el contexto aquí para el Toast
                         Toast.makeText(context, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show()
                     }
                 },

@@ -21,6 +21,9 @@ import com.example.notisalud.MainActivity
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class PacienteVista : ComponentActivity() {
 
@@ -30,18 +33,18 @@ class PacienteVista : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Inicializar Firebase Auth y Firestore
+        // Inicializa Firebase Auth y Firestore
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
 
-        // Crear canal de notificaciones
+        // Crea canal de notificaciones
         createNotificationChannel()
 
         // Recupera el nombre y apellido del intent
         val firstName = intent.getStringExtra("firstName") ?: "Nombre no disponible"
         val lastName = intent.getStringExtra("lastName") ?: "Apellido no disponible"
 
-        // Configurar el listener para notificaciones en tiempo real
+        // Configura el listener para notificaciones en tiempo real
         val userId = auth.currentUser?.uid
         if (userId != null) {
             setupFirestoreListener(userId)
@@ -71,6 +74,14 @@ class PacienteVista : ComponentActivity() {
                             val intent = Intent(this, MainActivity::class.java)
                             startActivity(intent)
                             finish()
+                        },
+                        onHistorialClick = {
+                            // Navegar a PacienteHistorial
+                            val intent = Intent(this, PacienteHistorial::class.java).apply {
+                                putExtra("firstName", firstName)
+                                putExtra("lastName", lastName)
+                            }
+                            startActivity(intent)
                         }
                     )
                 }
@@ -90,26 +101,79 @@ class PacienteVista : ComponentActivity() {
 
                 snapshots?.documentChanges?.forEach { change ->
                     val data = change.document.data
+
+                    // Verifica si hay un estado de examen "Notificando"
+                    val estadoExamen = data["EstadodeExamen"] as? String
+                    val examen = data["Examen"] as? String ?: "Solicitado"
+                    if (estadoExamen == "Notificando") {
+                        val titulo = "Tu examen: $examen está listo"
+                        val mensaje = "Tu examen: $examen está listo. Por favor, acércate al mesón."
+
+                        mostrarNotificacion(titulo, mensaje)
+                        guardarNotificacion(titulo, mensaje)
+                    }
+
+                    // Verifica si hay alta médica
                     val motivoAlta = data["MotivoAlta"] as? String
                     val fechaAlta = data["FechaAlta"] as? String
-
                     if (motivoAlta != null && fechaAlta != null) {
-                        mostrarNotificacion(
-                            "Alta Médica",
-                            "Has sido dado de alta. Motivo: $motivoAlta. Fecha: $fechaAlta"
-                        )
+                        val titulo = "Alta Médica"
+                        val mensaje = "Has sido dado de alta el $fechaAlta. Motivo: $motivoAlta."
+
+                        mostrarNotificacion(titulo, mensaje)
+                        guardarNotificacion(titulo, mensaje)
                     }
                 }
             }
     }
 
+    private fun guardarNotificacion(titulo: String, mensaje: String) {
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            val notificacion = hashMapOf(
+                "titulo" to titulo,
+                "mensaje" to mensaje,
+                "fecha" to SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            )
+
+            // Verifica si la notificación ya existe
+            firestore.collection("Users")
+                .document(userId)
+                .collection("notificaciones")
+                .whereEqualTo("titulo", titulo)
+                .whereEqualTo("mensaje", mensaje)
+                .get()
+                .addOnSuccessListener { querySnapshot ->
+                    if (querySnapshot.isEmpty) {
+                        // Si no existe la guarda
+                        firestore.collection("Users")
+                            .document(userId)
+                            .collection("notificaciones")
+                            .add(notificacion)
+                            .addOnSuccessListener {
+                                println("Notificación guardada exitosamente")
+                            }
+                            .addOnFailureListener { exception ->
+                                println("Error al guardar notificación: ${exception.message}")
+                            }
+                    } else {
+                        println("La notificación ya existe y no se guardará de nuevo.")
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    println("Error al verificar notificación existente: ${exception.message}")
+                }
+        }
+    }
+
+
     private fun mostrarNotificacion(titulo: String, mensaje: String) {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val notificationId = (System.currentTimeMillis() % 10000).toInt() // ID único para cada notificación
+        val notificationId = (System.currentTimeMillis() % 10000).toInt()
         val notification = NotificationCompat.Builder(this, "examenChannel")
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Usa un ícono apropiado
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(titulo)
             .setContentText(mensaje)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -123,10 +187,10 @@ class PacienteVista : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "examenChannel",
-                "Notificaciones de Examen y Alta Médica",
+                "Notificaciones de Examen y Alta",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notificaciones cuando los exámenes están listos o los pacientes son dados de alta."
+                description = "Notificaciones relacionadas con exámenes y alta médica."
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
@@ -140,7 +204,8 @@ fun PacienteVistaScreen(
     lastName: String,
     modifier: Modifier = Modifier,
     onUrgenciasClick: () -> Unit,
-    onCloseSessionClick: () -> Unit
+    onCloseSessionClick: () -> Unit,
+    onHistorialClick: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -149,13 +214,11 @@ fun PacienteVistaScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Muestra el nombre y apellido del usuario
         Text(
             text = "Bienvenido $firstName $lastName",
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Botón para ingresar a urgencias
         Button(
             onClick = onUrgenciasClick,
             modifier = Modifier
@@ -165,9 +228,8 @@ fun PacienteVistaScreen(
             Text("Ingreso a Urgencias")
         }
 
-        // Botón para historial de notificaciones (sin funcionalidad)
         Button(
-            onClick = { /* Implementar funcionalidad si es necesario */ },
+            onClick = onHistorialClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
@@ -175,7 +237,6 @@ fun PacienteVistaScreen(
             Text("Historial de Notificaciones")
         }
 
-        // Botón de cerrar sesión
         Button(
             onClick = onCloseSessionClick,
             modifier = Modifier
@@ -184,17 +245,5 @@ fun PacienteVistaScreen(
         ) {
             Text("Cerrar sesión")
         }
-    }
-}
-
-@Composable
-fun PacienteVistaPreview() {
-    AppTheme {
-        PacienteVistaScreen(
-            firstName = "Juan",
-            lastName = "Pérez",
-            onUrgenciasClick = {},
-            onCloseSessionClick = {}
-        )
     }
 }

@@ -109,7 +109,6 @@ fun EnfermeroActivityScreen(
 
         Text(text = "Selecciona una categorización:", modifier = Modifier.padding(bottom = 16.dp))
 
-        // Botones de categorización
         CategorizationButton("Atención General") { onCategorizacionSeleccionada("Atención General") }
         CategorizationButton("Leve") { onCategorizacionSeleccionada("Leve") }
         CategorizationButton("Mediana Gravedad") { onCategorizacionSeleccionada("Mediana Gravedad") }

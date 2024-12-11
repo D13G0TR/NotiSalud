@@ -2,6 +2,7 @@ package com.example.notisalud.Medico
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,7 +21,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.notisalud.ui.theme.AppTheme
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MedicoPacienteActivity : ComponentActivity() {
@@ -34,7 +34,11 @@ class MedicoPacienteActivity : ComponentActivity() {
                         TopAppBar(
                             title = { Text("Pacientes Categorizados") },
                             navigationIcon = {
-                                IconButton(onClick = { finish() }) {
+                                IconButton(onClick = {
+                                    val intent = Intent(this, MedicoVista::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }) {
                                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                                 }
                             }
@@ -50,7 +54,7 @@ class MedicoPacienteActivity : ComponentActivity() {
                                 putExtra("problemaSalud", paciente.problemaSalud)
                                 putExtra("fiebre", paciente.fiebre)
                                 putExtra("alergia", paciente.alergia)
-                                putExtra("categorizacion", paciente.categorizacion)
+                                putExtra("Categorizacion", paciente.Categorizacion)
                             }
                             startActivity(intent)
                         }
@@ -72,22 +76,28 @@ fun PacienteListScreen(
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        delay(3000) // Retraso de 3 segundos
-        firestore.collection("Users")
-            .get()
-            .addOnSuccessListener { querySnapshot ->
-                val listaPacientes = mutableListOf<PacienteCategorizado>()
+        val pacientesRef = firestore.collection("Users")
+        pacientesRef.addSnapshotListener { querySnapshot, error ->
+            if (error != null) {
+                Toast.makeText(context, "Error al escuchar cambios", Toast.LENGTH_SHORT).show()
+                return@addSnapshotListener
+            }
 
-                querySnapshot.documents.forEach { userDocument ->
-                    val userId = userDocument.id
-                    val nombre = userDocument.getString("nombre") ?: "Desconocido"
-                    val apellido = userDocument.getString("apellido") ?: "Desconocido"
+            val listaPacientes = mutableListOf<PacienteCategorizado>()
 
-                    userDocument.reference.collection("problemasDeSalud")
-                        .whereNotEqualTo("Categorizacion", null)
-                        .get()
-                        .addOnSuccessListener { problemasSnapshot ->
-                            problemasSnapshot.documents.forEach { problemaDoc ->
+            querySnapshot?.documents?.forEach { userDocument ->
+                val userId = userDocument.id
+                val nombre = userDocument.getString("nombre") ?: "Desconocido"
+                val apellido = userDocument.getString("apellido") ?: "Desconocido"
+
+                userDocument.reference.collection("problemasDeSalud")
+                    .whereNotEqualTo("Categorizacion", null)
+                    .get()
+                    .addOnSuccessListener { problemasSnapshot ->
+                        problemasSnapshot.documents.forEach { problemaDoc ->
+                            //erifica EstadoAlta no existe o es false
+                            val estadoAlta = problemaDoc.getBoolean("EstadoAlta") ?: false
+                            if (!estadoAlta) {
                                 listaPacientes.add(
                                     PacienteCategorizado(
                                         id = userId,
@@ -95,23 +105,21 @@ fun PacienteListScreen(
                                         problemaSalud = problemaDoc.getString("descripcion") ?: "Sin descripción",
                                         fiebre = problemaDoc.getString("duracionFiebre") ?: "No aplica",
                                         alergia = problemaDoc.getString("detallesAlergia") ?: "No aplica",
-                                        categorizacion = problemaDoc.getString("Categorizacion") ?: "No categorizado"
+                                        Categorizacion = problemaDoc.getString("Categorizacion") ?: "No categorizado"
                                     )
                                 )
                             }
-                            pacientes = listaPacientes
-                            isLoading = false
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(context, "Error al cargar problemas de salud", Toast.LENGTH_SHORT).show()
-                        }
-                }
-                isLoading = false
+                        pacientes = listaPacientes
+                        isLoading = false
+                    }
+                    .addOnFailureListener {
+                        Log.e("Firestore", "Error al cargar problemas de salud", it)
+                        Toast.makeText(context, "Error al cargar problemas de salud", Toast.LENGTH_SHORT).show()
+                    }
+
             }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error al cargar usuarios", Toast.LENGTH_SHORT).show()
-                isLoading = false
-            }
+        }
     }
 
     if (isLoading) {
@@ -142,7 +150,7 @@ fun PacienteItem(paciente: PacienteCategorizado, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${paciente.nombreCompleto} - ${paciente.categorizacion}",
+                text = "${paciente.nombreCompleto} - ${paciente.Categorizacion}",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
@@ -156,10 +164,10 @@ data class PacienteCategorizado(
     val problemaSalud: String,
     val fiebre: String,
     val alergia: String,
-    val categorizacion: String
+    val Categorizacion: String
 )
 
-@Preview(showSystemUi = true)
+@Preview
 @Composable
 fun PreviewPacienteListScreen() {
     AppTheme {

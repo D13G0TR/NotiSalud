@@ -8,6 +8,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.notisalud.Enfermero.EnfermeroVista
+import com.example.notisalud.Paciente.PacienteActivity
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -19,17 +21,28 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val title = remoteMessage.notification?.title ?: "Nuevo mensaje"
         val body = remoteMessage.notification?.body ?: "Tienes una nueva notificación"
 
-        showNotification(title, body)
+        // Verifica si es una notificación de alta
+        val type = remoteMessage.data["type"]
+        val intent = if (type == "discharge") {
+            val userId = remoteMessage.data["userId"]
+            val problemaSalud = remoteMessage.data["problemaSalud"]
+
+            Intent(this, PacienteActivity::class.java).apply {
+                putExtra("userId", userId)
+                putExtra("problemaSalud", problemaSalud)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        } else {
+            Intent(this, EnfermeroVista::class.java)
+        }
+
+        showNotification(title, body, intent)
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(title: String, body: String, intent: Intent) {
         val channelId = "default_channel"
         val notificationId = System.currentTimeMillis().toInt()
 
-        // Configurar la acción de la notificación
-        val intent = Intent(this, EnfermeroVista::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -37,9 +50,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Crear la notificación
         val builder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Reemplázalo con tu ícono de notificación
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -48,7 +60,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Crear el canal de notificaciones (para Android 8 o superior)
+        // Crea el canal de notificaciones
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
@@ -63,7 +75,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Guardar Token en FireBase
-        println("Nuevo token: $token")
+        val db = FirebaseFirestore.getInstance()
+
+        val userId = "enfermeroId"
+        db.collection("Users")
+            .document(userId)
+            .update("fcmToken", token)
+            .addOnSuccessListener {
+                println("Token FCM guardado correctamente")
+            }
+            .addOnFailureListener { e ->
+                println("Error al guardar el token FCM: ${e.message}")
+            }
     }
 }
